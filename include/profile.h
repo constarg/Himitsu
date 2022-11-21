@@ -1,17 +1,15 @@
-#ifndef PWD_MANAGER_H
-#define PWD_MANAGER_H
+#ifndef PROFILE_H
+#define PROFILE_H
 
-#include <iostream>
 #include <string>
 #include <map>
 #include <vector>
 
-namespace Pwd_Manager
-{
+namespace Pwd_Manager {
     class Profile {
         private:
-            FILE *profile;
             std::map<std::string, std::string> passwords;
+            std::vector<std::string> services;
 
             // TODO - add here a encrypt and descrypt method.
             void update_profile();
@@ -56,7 +54,13 @@ namespace Pwd_Manager
              * *is_connected* method checks if there is any connected
              * account at the moment.
              */
-            std::string is_connected() const;
+            bool is_connected() const;
+
+            /**
+             * *get_active_prof* method returns the currently
+             * connected profile.
+             */
+            std::string get_active_prof();
             /**
              * *count_pwds* method counts thw number of passwords in
              * an connected account.
@@ -72,7 +76,7 @@ namespace Pwd_Manager
              * *get_list_of_services* returns all the 
              * services that exists in the password list.
              */
-            vector<std::string> get_list_of_services() const;
+            std::vector<std::string> get_list_of_services() const;
             /**
              * *add_pwd* method adds an new password in the 
              * list.
@@ -81,16 +85,6 @@ namespace Pwd_Manager
              */
             int add_pwd(std::string &serv_name, std::string &pwd);
     };
-
-    class Manager {
-        
-        public:
-            
-    };
 }
-
-
-
-
 
 #endif
