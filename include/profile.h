@@ -4,14 +4,21 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <fstream>
+
+#define CONNECTED true
+#define DISCONECTED false
 
 namespace Pwd_Manager {
+
     class Profile {
         private:
             // Data fileds.
             std::map<std::string, std::string> passwords; // The encrypted passwords.
             std::vector<std::string> services;            // All the unvailable services.
-            std::string profile_file;                     // The name of the file that is acosiated with the profile.
+            std::string pname;                            // The name of the file that is acosiated with the profile.
+            std::fstream pfile;                           // The stream asociated with the file.
+            bool status;                                  // The status of the profile, connected or disconnected.
 
             // Methods.
             /**
@@ -36,28 +43,27 @@ namespace Pwd_Manager {
 
         public:
             Profile();
-            ~Profile();
             /**
              * *mk_new_prof* method creates a new account
              * @param pname The name of the account.
              * @param username The username of the account.
              * @param lock The master password of the account.
              */
-            int mk_new_prof(const std::string &pname, const std::string &username,
-                            const std::string &lock) const;
+            bool mk_new_prof(const std::string &pname, const std::string &username,
+                             const std::string &lock) const;
             /**
              * *del_prof* method deletes an account.
              * @param pname The name of the account.
              * @param username The username of the account.
              * @param lock The master password of the account.
              */
-            int del_prof(const std::string &pname, const std::string username, 
+            bool del_prof(const std::string &pname, const std::string username, 
                          const std::string &lock);
             /**
              * *search_prof* method searches for an existing account
              * @param panme The accout to search.
              */
-            int search_prof(const std::string &pname) const;
+            bool search_prof(const std::string &pname) const;
             /**
              * *connect* method connects to an existing account.
              * @param username The usernmae The username of the account.
@@ -91,7 +97,7 @@ namespace Pwd_Manager {
              * specific service.
              * @param serv The service.
              */
-            std::string &get_pwd(std::string &serv) const;
+            std::string get_pwd(const std::string &serv) const;
             /**
              * *get_list_of_services* returns all the 
              * services that exists in the password list.
@@ -103,7 +109,7 @@ namespace Pwd_Manager {
              * @param serv_name The name of the service.
              * @param pwd The password.
              */
-            int add_pwd(std::string &serv_name, std::string &pwd);
+            bool add_pwd(std::string &serv_name, std::string &pwd);
     };
 }
 
