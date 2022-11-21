@@ -27,13 +27,13 @@ namespace Pwd_Manager {
              * @param lock The password of the record.
              * @param serv The service acosiated with the record.
              */
-            std::string encrypt_data(const std::string &username, const std::string &pwd,
-                                     const std::string &serv);
+            std::string encrypt_data(std::string username, std::string pwd,
+                                     std::string serv);
             /**
              * *decrypt_data* decrypts an record of data.
              * @param enc_data The encrypted data.
              */
-            std::vector<std::string> decrypt_data(const std::string enc_data);
+            std::vector<std::string> decrypt_data(std::string enc_data);
             /**
              * *update_profile* when there is an new record the update
              * function will write the new data in the file asociated with
@@ -49,29 +49,29 @@ namespace Pwd_Manager {
              * @param username The username of the account.
              * @param lock The master password of the account.
              */
-            bool mk_new_prof(const std::string &pname, const std::string &username,
-                             const std::string &lock) const;
+            bool mk_new_prof(std::string pname, std::string username,
+                             std::string lock) const;
             /**
              * *del_prof* method deletes an account.
              * @param pname The name of the account.
              * @param username The username of the account.
              * @param lock The master password of the account.
              */
-            bool del_prof(const std::string &pname, const std::string username, 
-                         const std::string &lock);
+            bool del_prof(std::string pname, std::string username, 
+                          std::string lock);
             /**
              * *search_prof* method searches for an existing account
              * @param panme The accout to search.
              */
-            bool search_prof(const std::string &pname) const;
+            bool search_prof(std::string pname) const;
             /**
              * *connect* method connects to an existing account.
              * @param username The usernmae The username of the account.
              * @param lock The master password of the account.
              * @param pname The name of the account.
              */
-            void connect(const std::string &username, const std::string &lock, 
-                         const std::string &pname);
+            void connect(std::string username, std::string lock, 
+                         std::string pname);
             /**
              * *disconnect* method disconnects from an connected account.
              */
@@ -97,7 +97,7 @@ namespace Pwd_Manager {
              * specific service.
              * @param serv The service.
              */
-            std::string get_pwd(const std::string &serv) const;
+            std::string get_pwd(std::string serv) const;
             /**
              * *get_list_of_services* returns all the 
              * services that exists in the password list.
@@ -109,7 +109,7 @@ namespace Pwd_Manager {
              * @param serv_name The name of the service.
              * @param pwd The password.
              */
-            bool add_pwd(std::string &serv_name, std::string &pwd);
+            bool add_pwd(std::string serv_name, std::string pwd);
     };
 }
 
