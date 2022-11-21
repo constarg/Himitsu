@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <map>
+#include <vector>
 
 namespace Pwd_Manager
 {
@@ -13,6 +14,8 @@ namespace Pwd_Manager
             std::map<std::string, std::string> passwords;
 
             // TODO - add here a encrypt and descrypt method.
+            void update_profile();
+
         public:
             Profile();
             ~Profile();
@@ -69,7 +72,7 @@ namespace Pwd_Manager
              * *get_list_of_services* returns all the 
              * services that exists in the password list.
              */
-            std::string get_list_of_services() const;
+            vector<std::string> get_list_of_services() const;
             /**
              * *add_pwd* method adds an new password in the 
              * list.
