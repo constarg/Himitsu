@@ -8,10 +8,30 @@
 namespace Pwd_Manager {
     class Profile {
         private:
-            std::map<std::string, std::string> passwords;
-            std::vector<std::string> services;
+            // Data fileds.
+            std::map<std::string, std::string> passwords; // The encrypted passwords.
+            std::vector<std::string> services;            // All the unvailable services.
+            std::string profile_file;                     // The name of the file that is acosiated with the profile.
 
-            // TODO - add here a encrypt and descrypt method.
+            // Methods.
+            /**
+             * *encrypt_data* encrypts an record of data
+             * @param username The username of the record.
+             * @param lock The password of the record.
+             * @param serv The service acosiated with the record.
+             */
+            std::string encrypt_data(const std::string &username, const std::string &pwd,
+                                     const std::string &serv);
+            /**
+             * *decrypt_data* decrypts an record of data.
+             * @param enc_data The encrypted data.
+             */
+            std::vector<std::string> decrypt_data(const std::string enc_data);
+            /**
+             * *update_profile* when there is an new record the update
+             * function will write the new data in the file asociated with
+             * the connected profile.
+             */
             void update_profile();
 
         public:
