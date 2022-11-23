@@ -10,9 +10,9 @@ dir_make:
 	mkdir -p ./build/
 
 locations:
-	mkdir -p ~/.local/share/pwd_manager 700
-	mkdir -p ~/.local/share/pwd_manager/profiles 700
-	mkdir -p ~/.local/share/pwd_manager/logins 700
+	mkdir -p ~/.local/share/pwd_manager --mode=700
+	mkdir -p ~/.local/share/pwd_manager/profiles --mode=700
+	mkdir -p ~/.local/share/pwd_manager/logins --mode=700
 
 ./build/profile.o: ./src/profile.cpp
 	g++ -Wall ${header_loc} -c ./src/profile.cpp -lcrypto -o ./build/profile.o

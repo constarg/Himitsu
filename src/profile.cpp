@@ -22,8 +22,6 @@ using namespace Pwd_Manager;
  * ********************
  */
 
-
-
 const char *Profile::get_sha256(const char *msg, size_t s_msg)
 {
     unsigned char byte_arr[32] = {0};
@@ -38,7 +36,7 @@ const char *Profile::get_sha256(const char *msg, size_t s_msg)
     EVP_MD_CTX_free(ctx);
 
     for (int h = 0; h < 32; h++) {
-        sprintf(result + h * 2, "%x", byte_arr[h]);
+        sprintf(result + h * 2, "%02x", byte_arr[h]);
     }
 
     return (const char *) result;
@@ -102,7 +100,7 @@ bool Profile::mk_new_prof(std::string pname, std::string username,
                                      std::ios::trunc);
     // build the login file.
     username_sha256 = get_sha256(pname.c_str(), pname.size());
-    lock_sha256     = get_sha256(pname.c_str(), pname.size());
+    lock_sha256     = get_sha256(lock.c_str(), lock.size());
 
     // store the login infos.
     this->pfile << username_sha256 
