@@ -17,11 +17,11 @@ namespace Pwd_Manager {
             std::map<std::string, std::string> passwords; // The encrypted passwords.
             std::vector<std::string> services;            // All the unvailable services.
             std::string pname;                            // The name of the file that is acosiated with the profile.
-            std::fstream pfile;                           // The stream asociated with the file.
+            std::string plock;                            // The master password  of the profile.
             bool status;                                  // The status of the profile, connected or disconnected.
 
             // Methods.
-            const char *get_sha256(const char *msg, size_t s_msg);
+            const unsigned char *get_sha256(const char *msg, size_t s_msg);
             /**
              * *encrypt_data* encrypts an record of data
              * @param username The username of the record.

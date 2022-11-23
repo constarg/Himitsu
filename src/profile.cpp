@@ -2,8 +2,14 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <openssl/evp.h>
+#include <openssl/rand.h>
+#include <openssl/err.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <memory.h>
 
 #include "profile.h"
+
 
 using namespace Pwd_Manager;
 
@@ -17,15 +23,64 @@ using namespace Pwd_Manager;
     + ".local/share/pwd_manager/logins/"        \
 
 /**
+ *  This structure is used to represent the
+ *  informations in a login file. It is easier
+ *  to read a structure than to remember how the
+ *  file is structued.
+ */
+struct logins 
+{
+    unsigned char username[32];    // The usernmae of the profile.
+    unsigned char lock[32];        // The master password of the profile.
+    unsigned char iv[32];          // The initialization vector of the profile.
+};
+
+
+/**
+ * *********************
+ *  Non Members functions
+ * *********************
+ */
+static int get_login_info(struct login_info *dst, std::string pname)
+{
+    std::string home_prefix = getenv("HOME");
+    std::string login_location = home_prefix + PROFILE_LOG_INFO() + pname; // The location whre the logins for profiles is stored.
+    int fd = open(login_location.c_str(), O_RDONLY);
+    if (fd == -1) return -1;
+
+    struct logins login_info;
+    memset(&login_info, 0x0, sizeof(login_info));
+
+    // Get the username.
+    if (read(fd, login_info.username, 32) == -1) return -1;
+    if (read(fd, login_info.lock, 32) == -1) return -1;
+    if (read(fd, login_info.iv, 32) == -1) return -1;
+
+    memcpy(dst, &login_info, sizeof(login_info));
+    close(fd);
+    return 0;
+}
+
+// Get an initialization vector for aes.
+static inline unsigned char *get_aes_iv()
+{
+    static unsigned char iv[32]; // 256 - bits, aes256
+
+    RAND_bytes(iv, 32);
+    if (ERR_get_error() == 0) {
+        return iv;
+    }
+    return nullptr;
+}
+
+/**
  * ********************
  *    Private Methods
  * ********************
  */
-
-const char *Profile::get_sha256(const char *msg, size_t s_msg)
+const unsigned char *Profile::get_sha256(const char *msg, size_t s_msg)
 {
-    unsigned char byte_arr[32] = {0};
-    char *result = (char *) malloc(sizeof(char) * 65);
+    unsigned char *byte_arr = (unsigned char *) malloc(sizeof(char) * 32);
 
     EVP_MD_CTX *ctx;
     ctx = EVP_MD_CTX_new();
@@ -35,11 +90,7 @@ const char *Profile::get_sha256(const char *msg, size_t s_msg)
 
     EVP_MD_CTX_free(ctx);
 
-    for (int h = 0; h < 32; h++) {
-        sprintf(result + h * 2, "%02x", byte_arr[h]);
-    }
-
-    return (const char *) result;
+    return (const unsigned char *) byte_arr;
 }
 
 std::string Profile::encrypt_data(std::string username, std::string lock,
@@ -71,48 +122,50 @@ bool Profile::mk_new_prof(std::string pname, std::string username,
     std::string home_prefix = getenv("HOME");
     std::string prof_location = home_prefix + PROFILE_LOC() + pname; // The location where the profiles is stored.
     std::string login_location = home_prefix + PROFILE_LOG_INFO() + pname; // The location whre the logins for profiles is stored.
+    
+    std::ofstream pfile;
 
-    const char *username_sha256 = nullptr;
-    const char *lock_sha256 = nullptr;
+    int prof_fd;
+    int err1, err2, err3;
 
-    this->pfile.open(prof_location, std::ios::in);
+    const unsigned char *username_sha256 = nullptr;
+    const unsigned char *lock_sha256 = nullptr;
+    const unsigned char *iv_aes = nullptr;
+
+    pfile.open(prof_location, std::ios::in);
     // check if the file already exist.
     if (pfile.is_open()) {
-        this->pfile.close();
-        this->pfile.clear();
+        pfile.close();
         return false;
     }
     
-    this->pfile.clear(); // reset to goodbit.
-    // make the file.
-    this->pfile.open(prof_location, std::ios::out);
-    if (!this->pfile.good()) {
-        this->pfile.clear();
-        return false;
-    }
-    this->pfile.close();
-    this->pfile.clear();
+    pfile.clear(); // reset to goodbit.
+    // make the file asociated with the profile pname.
+    pfile.open(prof_location, std::ios::out);
+    if (!pfile.good()) return false;
+    pfile.close();
 
     // Create the login file, asociated with the profile.
     // If there is not any profile, even if there is a login, clean
     // it's contents and rewrite it.
-    this->pfile.open(login_location, std::ios::out |
-                                     std::ios::trunc);
-    // build the login file.
-    username_sha256 = get_sha256(pname.c_str(), pname.size());
+    prof_fd = open(login_location.c_str(), O_WRONLY | O_APPEND
+                                         | O_CREAT);
+    // get the hashes
+    username_sha256 = get_sha256(username.c_str(), username.size());
     lock_sha256     = get_sha256(lock.c_str(), lock.size());
+    iv_aes          = get_aes_iv();
 
-    // store the login infos.
-    this->pfile << username_sha256 
-                << ":"
-                << lock_sha256;
+    err1 = write(prof_fd, (const void *) username_sha256, 32);
+    err2 = write(prof_fd, (const void *) lock_sha256, 32);
+    err3 = write(prof_fd, (const void *) iv_aes, 32);
 
     free((void *) username_sha256);
     free((void *) lock_sha256);
+    
+    close(prof_fd);
 
-    this->pfile.close();
-    this->pfile.clear();
-    return true;
+    return (err1 == -1 || err2 == -1
+            || err3 == -1)? false : true;
 }
 
 bool Profile::del_prof(std::string pname, std::string sername, 
@@ -144,7 +197,6 @@ void Profile::disconnect()
     // Reset class members.
     passwords.clear();
     services.clear();
-    pfile.clear();
     pname = "";
     status = DISCONECTED;
 }

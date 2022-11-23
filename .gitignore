@@ -34,3 +34,5 @@
 build/
 profiles/
 *.swp
+
+pwd_manager
