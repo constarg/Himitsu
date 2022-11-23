@@ -21,6 +21,7 @@ namespace Pwd_Manager {
             bool status;                                  // The status of the profile, connected or disconnected.
 
             // Methods.
+            const char *get_sha256(const char *msg, size_t s_msg);
             /**
              * *encrypt_data* encrypts an record of data
              * @param username The username of the record.
@@ -34,13 +35,7 @@ namespace Pwd_Manager {
              * @param enc_data The encrypted data.
              */
             std::vector<std::string> decrypt_data(std::string enc_data);
-            /**
-             * *update_profile* when there is an new record the update
-             * function will write the new data in the file asociated with
-             * the connected profile.
-             */
-            void update_profile();
-
+                    
         public:
             Profile();
             /**
@@ -50,7 +45,7 @@ namespace Pwd_Manager {
              * @param lock The master password of the account.
              */
             bool mk_new_prof(std::string pname, std::string username,
-                             std::string lock) const;
+                             std::string lock);
             /**
              * *del_prof* method deletes an account.
              * @param pname The name of the account.

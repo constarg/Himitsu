@@ -1,10 +1,20 @@
-#include <memory.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <malloc.h>
+#include <openssl/evp.h>
 
 #include "profile.h"
 
-
 using namespace Pwd_Manager;
 
+
+#define PROFILE_LOC()                           \
+    + "/"                                       \
+    +  ".local/share/pwd_manager/profiles/"     \
+
+#define PROFILE_LOG_INFO()                      \
+    + "/"                                       \
+    + ".local/share/pwd_manager/logins/"        \
 
 /**
  * ********************
@@ -12,9 +22,26 @@ using namespace Pwd_Manager;
  * ********************
  */
 
-void Profile::update_profile()
-{
 
+
+const char *Profile::get_sha256(const char *msg, size_t s_msg)
+{
+    unsigned char byte_arr[32] = {0};
+    char *result = (char *) malloc(sizeof(char) * 65);
+
+    EVP_MD_CTX *ctx;
+    ctx = EVP_MD_CTX_new();
+    EVP_DigestInit_ex(ctx, EVP_sha256(), NULL);
+    EVP_DigestUpdate(ctx, msg, s_msg);
+    EVP_DigestFinal_ex(ctx, byte_arr, NULL);
+
+    EVP_MD_CTX_free(ctx);
+
+    for (int h = 0; h < 32; h++) {
+        sprintf(result + h * 2, "%x", byte_arr[h]);
+    }
+
+    return (const char *) result;
 }
 
 std::string Profile::encrypt_data(std::string username, std::string lock,
@@ -41,9 +68,52 @@ Profile::Profile()
 
 
 bool Profile::mk_new_prof(std::string pname, std::string username,
-                          std::string lock) const
+                          std::string lock)
 {
-    // TODO - decide where to store the account info.
+    std::string home_prefix = getenv("HOME");
+    std::string prof_location = home_prefix + PROFILE_LOC() + pname; // The location where the profiles is stored.
+    std::string login_location = home_prefix + PROFILE_LOG_INFO() + pname; // The location whre the logins for profiles is stored.
+
+    const char *username_sha256 = nullptr;
+    const char *lock_sha256 = nullptr;
+
+    this->pfile.open(prof_location, std::ios::in);
+    // check if the file already exist.
+    if (pfile.is_open()) {
+        this->pfile.close();
+        this->pfile.clear();
+        return false;
+    }
+    
+    this->pfile.clear(); // reset to goodbit.
+    // make the file.
+    this->pfile.open(prof_location, std::ios::out);
+    if (!this->pfile.good()) {
+        this->pfile.clear();
+        return false;
+    }
+    this->pfile.close();
+    this->pfile.clear();
+
+    // Create the login file, asociated with the profile.
+    // If there is not any profile, even if there is a login, clean
+    // it's contents and rewrite it.
+    this->pfile.open(login_location, std::ios::out |
+                                     std::ios::trunc);
+    // build the login file.
+    username_sha256 = get_sha256(pname.c_str(), pname.size());
+    lock_sha256     = get_sha256(pname.c_str(), pname.size());
+
+    // store the login infos.
+    this->pfile << username_sha256 
+                << ":"
+                << lock_sha256;
+
+    free((void *) username_sha256);
+    free((void *) lock_sha256);
+
+    this->pfile.close();
+    this->pfile.clear();
     return true;
 }
 
