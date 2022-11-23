@@ -21,15 +21,23 @@ namespace Pwd_Manager {
             bool status;                                  // The status of the profile, connected or disconnected.
 
             // Methods.
+            /**
+             * *get_sha256* return the sha256 hash of msg.
+             * @param msg The message to hash.
+             * @param s_msg The size of the message.
+             */
             const unsigned char *get_sha256(const char *msg, size_t s_msg);
+
             /**
              * *encrypt_data* encrypts an record of data
-             * @param username The username of the record.
-             * @param lock The password of the record.
-             * @param serv The service acosiated with the record.
+             * @param lock The master passowrd of the profile.
+             * @param iv   The initialization vector for the aes.
+             * @param data The data to encrypt.
+             * @param size The size of the data.
              */
-            std::string encrypt_data(std::string username, std::string pwd,
-                                     std::string serv);
+            unsigned char *encrypt_data(const unsigned char *lock, const unsigned char *iv,
+                                        const unsigned char *data, int size);
+
             /**
              * *decrypt_data* decrypts an record of data.
              * @param enc_data The encrypted data.

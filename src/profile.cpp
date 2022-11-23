@@ -93,10 +93,21 @@ const unsigned char *Profile::get_sha256(const char *msg, size_t s_msg)
     return (const unsigned char *) byte_arr;
 }
 
-std::string Profile::encrypt_data(std::string username, std::string lock,
-                                  std::string serv)
+unsigned char *Profile::encrypt_data(const unsigned char *lock, const unsigned char *iv,
+                                     const unsigned char *data, int size)
 {
-    return ""; // TODO - remove this and make the function.
+    unsigned char *enc = (unsigned char *) malloc(sizeof(char) * 32);
+    int enc_size = 0;
+
+    EVP_CIPHER_CTX *ctx;
+    ctx = EVP_CIPHER_CTX_new();
+
+    EVP_EncryptInit_ex(ctx, EVP_aes_256_ecb(), NULL, lock, iv);
+    EVP_EncryptUpdate(ctx, enc, &enc_size, data, size);
+    EVP_EncryptFinal(ctx, enc + enc_size, &enc_size);
+
+    EVP_CIPHER_CTX_free(ctx);
+    return enc; 
 }
 
 std::vector<std::string> decrypt_data(std::string enc_data)
