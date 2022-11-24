@@ -9,7 +9,7 @@
 #define CONNECTED true
 #define DISCONECTED false
 
-namespace Pwd_Manager {
+namespace Himitsu {
 
     class Profile {
         private:

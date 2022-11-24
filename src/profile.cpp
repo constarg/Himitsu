@@ -11,16 +11,16 @@
 #include "profile.h"
 
 
-using namespace Pwd_Manager;
+using namespace Himitsu;
 
 
 #define PROFILE_LOC()                           \
     + "/"                                       \
-    +  ".local/share/pwd_manager/profiles/"     \
+    +  ".local/share/Himitsu/profiles/"         \
 
 #define PROFILE_LOG_INFO()                      \
     + "/"                                       \
-    + ".local/share/pwd_manager/logins/"        \
+    + ".local/share/Himitsu/logins/"            \
 
 /**
  *  This structure is used to represent the
@@ -110,6 +110,7 @@ unsigned char *Profile::encrypt_data(const unsigned char *lock, const unsigned c
     return enc; 
 }
 
+// TODO - return a pair of int and the decrypt data
 std::vector<std::string> decrypt_data(std::string enc_data)
 {
     return std::vector<std::string>(); // TODO - remove this and make the functon.
@@ -160,7 +161,7 @@ bool Profile::mk_new_prof(std::string pname, std::string username,
     // If there is not any profile, even if there is a login, clean
     // it's contents and rewrite it.
     prof_fd = open(login_location.c_str(), O_WRONLY | O_APPEND
-                                         | O_CREAT);
+                                         | O_CREAT, 0700);
     // get the hashes
     username_sha256 = get_sha256(username.c_str(), username.size());
     lock_sha256     = get_sha256(lock.c_str(), lock.size());

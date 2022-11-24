@@ -9,7 +9,7 @@ static int help()
     return 0;
 }
 
-static void manager_prompt(Pwd_Manager::Profile &profile)
+static void manager_prompt(Himitsu::Profile &profile)
 {
 
 }
@@ -17,7 +17,7 @@ static void manager_prompt(Pwd_Manager::Profile &profile)
 
 int main(int argc, char *argv[])
 {
-    Pwd_Manager::Profile profile;
+    Himitsu::Profile profile;
 
     if (argv[1] == NULL) {
         return help();
