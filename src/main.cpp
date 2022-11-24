@@ -3,6 +3,7 @@
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <openssl/crypto.h>
 
 #include "profile.h"
 
@@ -10,6 +11,7 @@
 #define HIDE 1
 #define SHOW 2
 
+#define PASSWD_MAX 120
 
 static int help()
 {
@@ -17,10 +19,28 @@ static int help()
     return 0;
 }
 
+
+static int read_sensitive_input(char *dst, size_t max)
+{
+    char c;
+    for (size_t i = 0; 
+         i < max - 1; i++) {
+        fread(&c, 1, 1, stdin);
+        if (c == '\0' || c == '\n') break;
+
+        dst[i] = c;
+    }
+    dst[max] = '\0';
+}
+
+
 static void manager_prompt(Himitsu::Profile &profile, 
                            std::string username)
 {
     std::string input;
+    // Allocate space for the posible password.
+    char *passwd = (char *) OPENSSL_malloc(sizeof(char) * PASSWD_MAX); 
+
     int passwd_count = 0;
 
     std::cout << "Welcome back, " << username
@@ -60,6 +80,8 @@ static void manager_prompt(Himitsu::Profile &profile,
             std::cout << Himitsu::Profile::random_passwd();
         }
     }
+
+    OPENSSL_free(passwd);
 }
 
 /**
