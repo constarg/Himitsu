@@ -6,7 +6,7 @@
 
 #include "profile.h"
 
-
+// Terminal modes.
 #define HIDE 1
 #define SHOW 2
 
@@ -21,7 +21,8 @@ static void manager_prompt(Himitsu::Profile &profile,
                            std::string username)
 {
     std::string input;
-    
+    int passwd_count = 0;
+
     std::cout << "Welcome back, " << username
               << std::endl
               << "Connected Profile: "
@@ -34,7 +35,30 @@ static void manager_prompt(Himitsu::Profile &profile,
         std::cin >> input;
         std::cout << std::endl;
  
-        // TODO - if - else statement for each of the oparations.
+        if (input == "help") {
+            help();
+        } else if (input == "disconnect") {
+            profile.disconnect();
+            std::cout << "Disconected" << std::endl;
+            return;
+        } else if (input == "count-passwds") {
+            passwd_count = profile.count_pwds();
+            std::cout << passwd_count << std::endl;
+        } else if (input == "get-passwd") {
+            std::cout << "Please type the name"
+                      << "of the service (example: Facebook).";
+            std::cout << "Service: ";
+            std::cin  >> input;
+            
+            // Get the password for the specific service.
+            try {
+                std::cout << profile.get_pwd(input);
+            } catch(const std::out_of_range& e) {
+                std::cout << "Service not found" << std::endl;
+            }
+        } else if (input == "gen-passwd") {
+            std::cout << Himitsu::Profile::random_passwd();
+        }
     }
 }
 
@@ -57,6 +81,8 @@ static inline int change_visibility(struct termios *term,
                   << std::endl;
         return -1;
     }
+
+    return 0;
 }
 
 static void login(Himitsu::Profile &profile)
@@ -102,12 +128,21 @@ int main(int argc, char *argv[])
         if (argv[2] == NULL) return help();
         if (argv[3] == NULL) return help();
         if (argv[4] == NULL) return help();
-        profile.mk_new_prof(argv[2], argv[3], argv[4]);
+        // Ask for password.
+
+        Himitsu::Profile::mk_new_prof(argv[2], argv[3], argv[4]);
     } else if (!strcmp(argv[1], "--delete-profile")) {
         if (argv[2] == NULL) return help();
         if (argv[3] == NULL) return help();
         if (argv[4] == NULL) return help();
-        profile.del_prof(argv[2], argv[3], argv[3]);
+        Himitsu::Profile::del_prof(argv[2], argv[3], argv[3]);
+    } else if (!strcmp(argv[1], "--show-profiles")) {
+        for (std::string profile 
+             : Himitsu::Profile::show_profs()) {
+            std::cout << profile << std::endl;
+        }
+    } else if (!strcmp(argv[1], "--gen-passwd")) {
+        std::cout << Himitsu::Profile::random_passwd() << std::endl;
     } else if (!strcmp(argv[1], "--login")) {
         login(profile);
     }

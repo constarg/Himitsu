@@ -26,7 +26,7 @@ namespace Himitsu {
              * @param msg The message to hash.
              * @param s_msg The size of the message.
              */
-            const unsigned char *get_sha256(const char *msg, size_t s_msg);
+            static const unsigned char *get_sha256(const char *msg, size_t s_msg);
 
             /**
              * *encrypt_data* encrypts an record of data
@@ -35,14 +35,14 @@ namespace Himitsu {
              * @param data The data to encrypt.
              * @param size The size of the data.
              */
-            unsigned char *encrypt_data(const unsigned char *lock, const unsigned char *iv,
+            static unsigned char *encrypt_data(const unsigned char *lock, const unsigned char *iv,
                                         const unsigned char *data, int size);
 
             /**
              * *decrypt_data* decrypts an record of data.
              * @param enc_data The encrypted data.
              */
-            std::vector<std::string> decrypt_data(std::string enc_data);
+            static std::vector<std::string> decrypt_data(std::string enc_data);
                     
         public:
             Profile();
@@ -52,21 +52,29 @@ namespace Himitsu {
              * @param username The username of the account.
              * @param lock The master password of the account.
              */
-            bool mk_new_prof(std::string pname, std::string username,
-                             std::string lock);
+            static bool mk_new_prof(std::string pname, std::string username,
+                                    std::string lock);
             /**
              * *del_prof* method deletes an account.
              * @param pname The name of the account.
              * @param username The username of the account.
              * @param lock The master password of the account.
              */
-            bool del_prof(std::string pname, std::string username, 
-                          std::string lock);
+            static bool del_prof(std::string pname, std::string username, 
+                                 std::string lock);
+
             /**
-             * *search_prof* method searches for an existing account
-             * @param panme The accout to search.
+             * *random_passwd* generates a random password
+             * and return the result.
              */
-            bool search_prof(std::string pname) const;
+            static std::string random_passwd();
+
+            /**
+             * *search_prof* method displays all the unvailable
+             * profiles in the system.
+             */
+            static std::vector<std::string> show_profs();
+
             /**
              * *connect* method connects to an existing account.
              * @param username The usernmae The username of the account.
@@ -74,10 +82,12 @@ namespace Himitsu {
              * @param pname The name of the account.
              */
             void connect(std::string username, std::string lock);
+
             /**
              * *disconnect* method disconnects from an connected account.
              */
             void disconnect();
+
             /**
              * *is_connected* method checks if there is any connected
              * account at the moment.
@@ -89,22 +99,26 @@ namespace Himitsu {
              * connected profile.
              */
             std::string get_active_prof();
+
             /**
-             * *count_pwds* method counts thw number of passwords in
+             * *count_pwds* method counts the number of passwords in
              * an connected account.
              */
             int count_pwds() const;
+
             /**
              * *get_pwd* method retrieves the password of the
              * specific service.
              * @param serv The service.
              */
             std::string get_pwd(std::string serv) const;
+
             /**
              * *get_list_of_services* returns all the 
              * services that exists in the password list.
              */
             std::vector<std::string> get_list_of_services() const;
+
             /**
              * *add_pwd* method adds an new password in the 
              * list.
@@ -112,6 +126,8 @@ namespace Himitsu {
              * @param pwd The password.
              */
             bool add_pwd(std::string serv_name, std::string pwd);
+
+            
     };
 }
 

@@ -129,7 +129,7 @@ Profile::Profile()
 
 
 bool Profile::mk_new_prof(std::string pname, std::string username,
-                          std::string lock)
+                                 std::string lock)
 {
     std::string home_prefix = getenv("HOME");
     std::string prof_location = home_prefix + PROFILE_LOC() + pname; // The location where the profiles is stored.
@@ -163,8 +163,8 @@ bool Profile::mk_new_prof(std::string pname, std::string username,
     prof_fd = open(login_location.c_str(), O_WRONLY | O_APPEND
                                          | O_CREAT, 0700);
     // get the hashes
-    username_sha256 = get_sha256(username.c_str(), username.size());
-    lock_sha256     = get_sha256(lock.c_str(), lock.size());
+    username_sha256 = Profile::get_sha256(username.c_str(), username.size());
+    lock_sha256     = Profile::get_sha256(lock.c_str(), lock.size());
     iv_aes          = get_aes_iv();
 
     err1 = write(prof_fd, (const void *) username_sha256, 32);
@@ -181,19 +181,25 @@ bool Profile::mk_new_prof(std::string pname, std::string username,
 }
 
 bool Profile::del_prof(std::string pname, std::string sername, 
-                       std::string lock)
+                              std::string lock)
 {
     // TODO - decide where the account info is stored.
     return true;    
 }
 
 
-bool Profile::search_prof(const std::string pname) const
+std::vector<std::string> Profile::show_profs()
 {
     // TODO - decide where the account info is stored.
-    return 0;
+    std::vector<std::string> tmp;
+
+    return tmp;
 }
 
+std::string Profile::random_passwd()
+{
+    return "";
+}
 
 void Profile::connect(std::string username, std::string lock)
 {
@@ -244,3 +250,5 @@ bool Profile::add_pwd(std::string serv_name, std::string pwd)
 {
     return this->passwords.emplace(std::make_pair(serv_name, pwd)).second; // returns if the insertion is done or not.
 }
+
+
