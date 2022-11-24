@@ -73,8 +73,7 @@ namespace Himitsu {
              * @param lock The master password of the account.
              * @param pname The name of the account.
              */
-            void connect(std::string username, std::string lock, 
-                         std::string pname);
+            void connect(std::string username, std::string lock);
             /**
              * *disconnect* method disconnects from an connected account.
              */

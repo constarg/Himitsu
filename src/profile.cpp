@@ -195,8 +195,7 @@ bool Profile::search_prof(const std::string pname) const
 }
 
 
-void Profile::connect(std::string username, std::string lock, 
-                      std::string pname)
+void Profile::connect(std::string username, std::string lock)
 {
     if (is_connected()) disconnect();
 
@@ -213,35 +212,35 @@ void Profile::disconnect()
     status = DISCONECTED;
 }
       
-inline bool Profile::is_connected() const
+bool Profile::is_connected() const
 {
     return this->status;
 }
 
           
-inline std::string Profile::get_active_prof()
+std::string Profile::get_active_prof()
 {
     return this->pname;
 }
            
-inline int Profile::count_pwds() const
+int Profile::count_pwds() const
 {
     return this->passwords.size();
 }
          
-inline std::string Profile::get_pwd(std::string serv) const
+std::string Profile::get_pwd(std::string serv) const
 {
     return this->passwords.at(serv);
 }
            
 
-inline std::vector<std::string> Profile::get_list_of_services() const
+std::vector<std::string> Profile::get_list_of_services() const
 {
     return this->services;
 }
             
 
-inline bool Profile::add_pwd(std::string serv_name, std::string pwd)
+bool Profile::add_pwd(std::string serv_name, std::string pwd)
 {
     return this->passwords.emplace(std::make_pair(serv_name, pwd)).second; // returns if the insertion is done or not.
 }
