@@ -25,3 +25,10 @@ followed.<br>
 ```
 
 After this the program will be installed and ready to run.
+
+# Wiki
+For more pieces of information visit Himitsu's wiki!!
+
+# Contribution
+
+Any contribution or suggestion is welcomed, I hope that you like this project!!
