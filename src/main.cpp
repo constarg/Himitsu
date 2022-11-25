@@ -1,9 +1,9 @@
 #include <cstring>
 #include <iostream>
 #include <termios.h>
-#include <sys/ioctl.h>
 #include <unistd.h>
 #include <openssl/crypto.h>
+#include <sys/mman.h>
 
 #include "profile.h"
 
@@ -11,7 +11,11 @@
 #define HIDE 1
 #define SHOW 2
 
-#define PASSWD_MAX 120
+
+#define SMT_WRONG()                         \
+    std::cout << "Something went wrong..."  \
+              << std::endl;                 \
+
 
 static int help()
 {
@@ -22,15 +26,25 @@ static int help()
 
 static int read_sensitive_input(char *dst, size_t max)
 {
-    char c;
-    for (size_t i = 0; 
-         i < max - 1; i++) {
-        fread(&c, 1, 1, stdin);
-        if (c == '\0' || c == '\n') break;
+    char c = '\0';
+    size_t i = 0;
+    // consume the first character.
+    fscanf(stdin, "%c", &c);
+    if (c != '\n') {
+        dst[0] = c;
+        i = 1;
+    }
+
+    for (; i < max - 1; i++) {
+        fscanf(stdin, "%c", &c);  
+        if (feof(stdin) != 0 || c == '\n') break;
+        else if (ferror(stdin) != 0) return -1;
 
         dst[i] = c;
     }
-    dst[max] = '\0';
+    dst[i] = '\0';
+
+    return 0;
 }
 
 
@@ -99,8 +113,7 @@ static inline int change_visibility(struct termios *term,
 
     if (tcsetattr(STDIN_FILENO, TCSANOW, 
                   term) == -1) {
-        std::cout << "Something went wrong..."
-                  << std::endl;
+        SMT_WRONG();
         return -1;
     }
 
@@ -110,7 +123,11 @@ static inline int change_visibility(struct termios *term,
 static void login(Himitsu::Profile &profile)
 {
     std::string username;
-    std::string password;
+    std::string pname;
+    char *password = (char *) OPENSSL_malloc(sizeof(char) * PASSWD_MAX); 
+    memset(password, 0x0, PASSWD_MAX);
+
+    int err1, err2, err3 = 0;
     struct termios terminal;
     
     // Get the username.
@@ -121,23 +138,62 @@ static void login(Himitsu::Profile &profile)
     std::cout << "Password: ";
     if (tcgetattr(STDIN_FILENO, 
                   &terminal) == -1) {
-        std::cout << "Something went wrong..."
-                  << std::endl;
+        SMT_WRONG();
         return;
     }
 
     // Hide input.
-    if (change_visibility(&terminal, HIDE) == -1) return;
+    err1 = change_visibility(&terminal, HIDE);
+
+    // Do not allow the password to be written in disk!
+    // For security reasons, because it could be restored
+    // using foresics methods.
+    // Lock Virtual Address page that contains the password
+    // in memory.
+    if (mlock(password, PASSWD_MAX) != 0) {
+        SMT_WRONG();
+        OPENSSL_free(password);
+        return;
+    }
 
     // Get the password.
-    std::cin >> password;
+    err2 = read_sensitive_input(password, PASSWD_MAX);
     std::cout << std::endl;
 
-    // Reset terminal.
-    if (change_visibility(&terminal, SHOW) == -1) return; 
+    err3 = change_visibility(&terminal, SHOW);
+    if (err1 != 0 || err2 != 0 || err3) {
+        SMT_WRONG();
+        OPENSSL_cleanse(password, PASSWD_MAX);
+        OPENSSL_free(password);
+        return;
+    }    
 
-    std::cin >> password;
-    // TODO - login.
+    // Get profile.
+    std::cout << "Profile: ";
+    std::cin  >> pname;
+    std::cout << std::endl;
+
+    // During connect we change the position of the password
+    // in memory, so after that we clean up the local copy.
+    profile.connect(username, password, pname);
+    // cleanup
+    // remove the password from memory.
+    OPENSSL_cleanse(password, PASSWD_MAX);
+
+    // unlock address
+    if (munlock(password, PASSWD_MAX) != 0) {
+        SMT_WRONG();
+        OPENSSL_free(password);
+    }
+    OPENSSL_free(password);
+
+    if (!profile.is_connected()) {
+        SMT_WRONG();
+        return;
+    }
+
+    // If connection is established.
+    manager_prompt(profile, username);
 }
 
 int main(int argc, char *argv[])

@@ -9,6 +9,8 @@
 #define CONNECTED true
 #define DISCONECTED false
 
+#define PASSWD_MAX 120
+
 namespace Himitsu {
 
     class Profile {
@@ -17,7 +19,7 @@ namespace Himitsu {
             std::map<std::string, std::string> passwords; // The encrypted passwords.
             std::vector<std::string> services;            // All the unvailable services.
             std::string pname;                            // The name of the file that is acosiated with the profile.
-            std::string plock;                            // The master password  of the profile.
+            char *plock;                                  // The master password  of the profile.
             bool status;                                  // The status of the profile, connected or disconnected.
 
             // Methods.
@@ -77,11 +79,15 @@ namespace Himitsu {
 
             /**
              * *connect* method connects to an existing account.
+             * Connect assumes that the lock's (a.k.a master password) 
+             * address remain always!! in memory. Before calling connect
+             * there was a call of mlock, to lock up the address in memory.
+             *
              * @param username The usernmae The username of the account.
              * @param lock The master password of the account.
              * @param pname The name of the account.
              */
-            void connect(std::string username, std::string lock);
+            void connect(std::string username, const char *lock, std::string pname);
 
             /**
              * *disconnect* method disconnects from an connected account.
@@ -114,6 +120,13 @@ namespace Himitsu {
             std::string get_pwd(std::string serv) const;
 
             /**
+             * *set_lock* method saves the plock password in the
+             * instance variable plock of the class.
+             * @param plock Pointer to the master password of the user.
+             */
+            void set_lock(char *plock);
+            
+            /**
              * *get_list_of_services* returns all the 
              * services that exists in the password list.
              */
@@ -127,7 +140,6 @@ namespace Himitsu {
              */
             bool add_pwd(std::string serv_name, std::string pwd);
 
-            
     };
 }
 

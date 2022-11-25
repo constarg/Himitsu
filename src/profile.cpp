@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <memory.h>
+#include <dirent.h>
 
 #include "profile.h"
 
@@ -41,6 +42,14 @@ struct logins
  *  Non Members functions
  * *********************
  */
+/**
+ * *get_login_info* functions get's the usernmae, password and 
+ * initialization vector from a login file, associated with 
+ * the profile.
+ * 
+ * @param dst The destination where we put the results
+ * @param pname The profile name.
+ */
 static int get_login_info(struct login_info *dst, std::string pname)
 {
     std::string home_prefix = getenv("HOME");
@@ -61,7 +70,7 @@ static int get_login_info(struct login_info *dst, std::string pname)
     return 0;
 }
 
-// Get an initialization vector for aes.
+// Get an random initialization vector for aes.
 static inline unsigned char *get_aes_iv()
 {
     static unsigned char iv[32]; // 256 - bits, aes256
@@ -181,19 +190,35 @@ bool Profile::mk_new_prof(std::string pname, std::string username,
 }
 
 bool Profile::del_prof(std::string pname, std::string sername, 
-                              std::string lock)
+                       std::string lock)
 {
     // TODO - decide where the account info is stored.
     return true;    
 }
 
-
 std::vector<std::string> Profile::show_profs()
 {
-    // TODO - decide where the account info is stored.
-    std::vector<std::string> tmp;
+    std::vector<std::string> profiles;
+    std::string profile_str;
+    std::string home_prefix = getenv("HOME");
+    std::string profile_loc = home_prefix + "/.local/share/Himitsu/profiles/";
 
-    return tmp;
+    DIR *dir;
+    struct dirent *profile;
+
+    dir = opendir(profile_loc.c_str());
+    if (dir == nullptr) return profiles;
+
+    while ((profile = readdir(dir)) 
+            != nullptr) {
+        if (profile->d_type == DT_REG) {
+            profile_str = profile->d_name;
+            profiles.push_back(profile_str);
+        }
+    }
+
+    closedir(dir);
+    return profiles;
 }
 
 std::string Profile::random_passwd()
@@ -201,7 +226,8 @@ std::string Profile::random_passwd()
     return "";
 }
 
-void Profile::connect(std::string username, std::string lock)
+void Profile::connect(std::string username, const char *lock,
+                      std::string pname)
 {
     if (is_connected()) disconnect();
 
