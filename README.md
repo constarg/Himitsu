@@ -1,5 +1,5 @@
 # Himitsu
-Himitsu is a terminal-based secure password manager that tries to help you remember your passwords and gives you the functionality to make strong passwords for your online services. 
+Himitsu is a terminal-based secure password manager that tries to help you remember your passwords and gives you the functionality to make strong passwords for your online services. The name Himitsu name means "secret" in Japanese.
 
 # Installation requirements
 The following packages must be installed.<br>
