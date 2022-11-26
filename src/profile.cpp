@@ -8,9 +8,11 @@
 #include <fcntl.h>
 #include <memory.h>
 #include <dirent.h>
+#include <cstring>
 
 #include "profile.h"
 
+#include <iostream>
 
 using namespace Himitsu;
 
@@ -50,7 +52,7 @@ struct logins
  * @param dst The destination where we put the results
  * @param pname The profile name.
  */
-static int get_login_info(struct login_info *dst, std::string pname)
+static int get_login_info(struct logins *dst, std::string pname)
 {
     std::string home_prefix = getenv("HOME");
     std::string login_location = home_prefix + PROFILE_LOG_INFO() + pname; // The location whre the logins for profiles is stored.
@@ -71,11 +73,12 @@ static int get_login_info(struct login_info *dst, std::string pname)
 }
 
 // Get an random initialization vector for aes.
-static inline unsigned char *get_aes_iv()
+static inline unsigned char *get_aes_iv(int len)
 {
-    static unsigned char iv[32]; // 256 - bits, aes256
+    unsigned char *iv = (unsigned char *) malloc(sizeof(char) *
+                                                 len); // 256 - bits, aes256
 
-    RAND_bytes(iv, 32);
+    RAND_bytes(iv, len);
     if (ERR_get_error() == 0) {
         return iv;
     }
@@ -105,24 +108,32 @@ const unsigned char *Profile::get_sha256(const char *msg, size_t s_msg)
 unsigned char *Profile::encrypt_data(const unsigned char *lock, const unsigned char *iv,
                                      const unsigned char *data, int size)
 {
-    unsigned char *enc = (unsigned char *) malloc(sizeof(char) * 32);
+    unsigned char *enc = (unsigned char *) malloc(sizeof(char) * 48);
+    memset(enc, 0x0, 48);
     int enc_size = 0;
+    int len = 0;
 
     EVP_CIPHER_CTX *ctx;
     ctx = EVP_CIPHER_CTX_new();
 
-    EVP_EncryptInit_ex(ctx, EVP_aes_256_ecb(), NULL, lock, iv);
-    EVP_EncryptUpdate(ctx, enc, &enc_size, data, size);
-    EVP_EncryptFinal(ctx, enc + enc_size, &enc_size);
+    EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, lock, iv);
+    EVP_EncryptUpdate(ctx, enc, &len, data, size);
+    EVP_EncryptFinal(ctx, enc + len, &enc_size);
+
+    std::cout << enc_size + len << std::endl;
+
+    int fd = open("/home/rounnus/test/out2.txt", O_WRONLY);
+    write(fd, enc, enc_size + len);
+    close(fd);
 
     EVP_CIPHER_CTX_free(ctx);
     return enc; 
 }
 
 // TODO - return a pair of int and the decrypt data
-std::vector<std::string> decrypt_data(std::string enc_data)
+unsigned char *Profile::decrypt_data(std::string enc_data)
 {
-    return std::vector<std::string>(); // TODO - remove this and make the functon.
+    return nullptr;
 }
 
 /**
@@ -174,15 +185,16 @@ bool Profile::mk_new_prof(std::string pname, std::string username,
     // get the hashes
     username_sha256 = Profile::get_sha256(username.c_str(), username.size());
     lock_sha256     = Profile::get_sha256(lock.c_str(), lock.size());
-    iv_aes          = get_aes_iv();
+    iv_aes          = get_aes_iv(16);
 
     err1 = write(prof_fd, (const void *) username_sha256, 32);
     err2 = write(prof_fd, (const void *) lock_sha256, 32);
-    err3 = write(prof_fd, (const void *) iv_aes, 32);
+    err3 = write(prof_fd, (const void *) iv_aes, 16);
 
     free((void *) username_sha256);
     free((void *) lock_sha256);
-    
+    free((void *) iv_aes);
+
     close(prof_fd);
 
     return (err1 == -1 || err2 == -1
@@ -230,9 +242,54 @@ void Profile::connect(std::string username, const char *lock,
                       std::string pname)
 {
     if (is_connected()) disconnect();
+   
+    // From user.
+    const unsigned char *in_username_sha256; // hashed input username.
+    const unsigned char *in_lock_sha256;     // hashed input lock.
+    // From system.
+    struct logins login;                // The hashed logins.
 
-    // open " connect " to the profile.
-    // TODO - decide where the account info is stored.
+    // Get login info.
+    if (get_login_info(&login, pname) == -1) return;
+
+    // hash the input.
+    in_username_sha256 = Profile::get_sha256(username.c_str(), username.size());
+    in_lock_sha256 = Profile::get_sha256(lock, strlen(lock));
+
+    // compare the hashes from the system and the input hashes.
+    if (memcmp(in_username_sha256, login.username, 32) != 0) return;
+    if (memcmp(in_lock_sha256, login.lock, 32) != 0) return;
+
+    // if the above stament didn't return, when the user put the right credentials.
+    // before check the account as connected we have to do a few jobs.
+    // encrypt the lock (a.k.a master password) using random bytes.
+    this->plock_key = get_aes_iv(32); // behave this, as just random bytes.
+    this->plock_iv  = get_aes_iv(16); // behave as the actual iv.
+
+    if (this->plock_iv == nullptr ||
+        this->plock_key == nullptr) return;
+
+    // encrypt lock.
+    this->plock_enc = encrypt_data(this->plock_key, this->plock_iv,
+                                   (unsigned char *) lock, strlen(lock));
+  
+    int fd = open("/home/rounnus/test/key.txt", O_WRONLY | O_CREAT);
+    write(fd, plock_key, 32);
+    close(fd);
+
+    fd = open("/home/rounnus/test/iv.txt", O_WRONLY | O_CREAT);
+    write(fd, plock_iv, 16);
+    close(fd);
+
+    // If all of the above actions are done,
+    // then the user is connected.
+    this->status = CONNECTED;
+    this->pname  = pname;
+    free((void *) in_username_sha256);
+    free((void *) in_lock_sha256);
+    // TODO - only test, DELETE THIS.
+    free((void *) plock_key);
+    free((void *) plock_iv);
 }
 
 void Profile::disconnect()

@@ -67,7 +67,6 @@ static void manager_prompt(Himitsu::Profile &profile,
         std::cout << "(" << profile.get_active_prof() << ")"
                   <<  " => ";
         std::cin >> input;
-        std::cout << std::endl;
  
         if (input == "help") {
             help();
@@ -92,6 +91,10 @@ static void manager_prompt(Himitsu::Profile &profile,
             }
         } else if (input == "gen-passwd") {
             std::cout << Himitsu::Profile::random_passwd();
+        } else if (input == "exit") {
+            profile.disconnect();
+            std::cout << "Logout..." << std::endl;
+            break;
         }
     }
 

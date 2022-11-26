@@ -19,7 +19,10 @@ namespace Himitsu {
             std::map<std::string, std::string> passwords; // The encrypted passwords.
             std::vector<std::string> services;            // All the unvailable services.
             std::string pname;                            // The name of the file that is acosiated with the profile.
-            char *plock;                                  // The master password  of the profile.
+            char *plock;                                  // The master password of the profile. The addresses are locked in memory, never go to disk.
+            unsigned char *plock_enc;                     // Encrypted lock (a.k.a master password).
+            unsigned char *plock_key;                     // one-time encryption key for lock.
+            unsigned char *plock_iv;                      // one-time encryption key iv, for AES.
             bool status;                                  // The status of the profile, connected or disconnected.
 
             // Methods.
@@ -38,13 +41,13 @@ namespace Himitsu {
              * @param size The size of the data.
              */
             static unsigned char *encrypt_data(const unsigned char *lock, const unsigned char *iv,
-                                        const unsigned char *data, int size);
+                                               const unsigned char *data, int size);
 
             /**
              * *decrypt_data* decrypts an record of data.
              * @param enc_data The encrypted data.
              */
-            static std::vector<std::string> decrypt_data(std::string enc_data);
+            static unsigned char *decrypt_data(std::string enc_data);
                     
         public:
             Profile();
