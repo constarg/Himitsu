@@ -35,14 +35,104 @@ static int read_sensitive_input(char *dst, size_t max)
         i = 1;
     }
 
-    for (; i < max - 1; i++) {
+    while(true) {
         fscanf(stdin, "%c", &c);  
         if (feof(stdin) != 0 || c == '\n') break;
         else if (ferror(stdin) != 0) return -1;
 
-        dst[i] = c;
+        if (i < max) dst[i] = c;
+        ++i;
     }
     dst[i] = '\0';
+
+    return 0;
+}
+
+/**
+ * Hide or show the user input while typing.
+ * @param term The terminal.
+ */
+static inline int change_visibility(struct termios *term,
+                                    int visibility_type)
+{
+    // Hide user input.
+    if (visibility_type == HIDE)
+        term->c_lflag &= ~(ECHO);
+    else
+        term->c_lflag |= ECHO;
+
+    if (tcsetattr(STDIN_FILENO, TCSANOW, 
+                  term) == -1) {
+        SMT_WRONG();
+        return -1;
+    }
+
+    return 0;
+}
+
+/**
+ * This functions retrieves the password
+ * from the stdin and secure it using mlock.
+ * 
+ * @return a pointer to the memory address that
+ * the password is stored.
+ */
+static char *ask_for_password()
+{
+    char *password = (char *) OPENSSL_malloc(sizeof(char) * PASSWD_MAX);
+    memset(password, 0x0, PASSWD_MAX);
+    struct termios terminal;
+
+    int err1, err2, err3;
+
+    if (tcgetattr(STDIN_FILENO, 
+                  &terminal) == -1) {
+        SMT_WRONG();
+        return nullptr;
+    }
+
+    std::cout << "Password: ";
+
+    // Hide input.
+    err1 = change_visibility(&terminal, HIDE);
+    
+    // Do not allow the password to be written in disk!
+    // For security reasons, because it could be restored
+    // using foresics methods.
+    // Lock Virtual Address page that contains the password
+    // in memory.
+    if (mlock(password, PASSWD_MAX) != 0) {
+        SMT_WRONG();
+        OPENSSL_free(password);
+        return nullptr;
+    }
+
+    // Get the password.
+    err2 = read_sensitive_input(password, PASSWD_MAX);
+    std::cout << std::endl;
+
+    err3 = change_visibility(&terminal, SHOW);
+    if (err1 != 0 || err2 != 0 || err3) {
+        SMT_WRONG();
+        return nullptr;
+    }    
+
+    return password;
+}
+
+static int safely_destroy_password(char *password)
+{
+    // cleanup
+    // remove the password from memory.
+    OPENSSL_cleanse(password, PASSWD_MAX);
+
+    // unlock address
+    if (munlock(password, PASSWD_MAX) != 0) {
+        SMT_WRONG();
+        OPENSSL_free(password);
+        return -1;
+    }
+    OPENSSL_free(password);
 
     return 0;
 }
@@ -101,75 +191,19 @@ static void manager_prompt(Himitsu::Profile &profile,
     OPENSSL_free(passwd);
 }
 
-/**
- * Hide or show the user input while typing.
- * @param term The terminal.
- */
-static inline int change_visibility(struct termios *term,
-                                    int visibility_type)
-{
-    // Hide user input.
-    if (visibility_type == HIDE)
-        term->c_lflag &= ~(ECHO);
-    else
-        term->c_lflag |= ECHO;
-
-    if (tcsetattr(STDIN_FILENO, TCSANOW, 
-                  term) == -1) {
-        SMT_WRONG();
-        return -1;
-    }
-
-    return 0;
-}
-
 static void login(Himitsu::Profile &profile)
 {
     std::string username;
     std::string pname;
-    char *password = (char *) OPENSSL_malloc(sizeof(char) * PASSWD_MAX); 
-    memset(password, 0x0, PASSWD_MAX);
-
-    int err1, err2, err3 = 0;
-    struct termios terminal;
-    
+    char *password; 
+ 
     // Get the username.
     std::cout << "Username: ";
     std::cin  >> username;
 
-    // Prepare for the password.
-    std::cout << "Password: ";
-    if (tcgetattr(STDIN_FILENO, 
-                  &terminal) == -1) {
-        SMT_WRONG();
-        return;
-    }
-
-    // Hide input.
-    err1 = change_visibility(&terminal, HIDE);
-
-    // Do not allow the password to be written in disk!
-    // For security reasons, because it could be restored
-    // using foresics methods.
-    // Lock Virtual Address page that contains the password
-    // in memory.
-    if (mlock(password, PASSWD_MAX) != 0) {
-        SMT_WRONG();
-        OPENSSL_free(password);
-        return;
-    }
-
-    // Get the password.
-    err2 = read_sensitive_input(password, PASSWD_MAX);
-    std::cout << std::endl;
-
-    err3 = change_visibility(&terminal, SHOW);
-    if (err1 != 0 || err2 != 0 || err3) {
-        SMT_WRONG();
-        OPENSSL_cleanse(password, PASSWD_MAX);
-        OPENSSL_free(password);
-        return;
-    }    
+    // retrieve the password.
+    password = ask_for_password();
+    if (!password) return;
 
     // Get profile.
     std::cout << "Profile: ";
@@ -179,22 +213,15 @@ static void login(Himitsu::Profile &profile)
     // During connect we change the position of the password
     // in memory, so after that we clean up the local copy.
     profile.connect(username, password, pname);
-    // cleanup
-    // remove the password from memory.
-    OPENSSL_cleanse(password, PASSWD_MAX);
 
-    // unlock address
-    if (munlock(password, PASSWD_MAX) != 0) {
-        SMT_WRONG();
-        OPENSSL_free(password);
-    }
-    OPENSSL_free(password);
-
-    if (!profile.is_connected()) {
+    // destory temporary password.
+    if (safely_destroy_password(password) != 0) {
         SMT_WRONG();
         return;
     }
 
+    // check if the profile is connected.
+    if (!profile.is_connected()) return;
     // If connection is established.
     manager_prompt(profile, username);
 }
@@ -208,10 +235,11 @@ int main(int argc, char *argv[])
     } else if (!strcmp(argv[1], "--make-profile")) {
         if (argv[2] == NULL) return help();
         if (argv[3] == NULL) return help();
-        if (argv[4] == NULL) return help();
-        // Ask for password.
 
-        Himitsu::Profile::mk_new_prof(argv[2], argv[3], argv[4]);
+        char *passwd = ask_for_password();
+        if (!passwd) return 0;
+        Himitsu::Profile::mk_new_prof(argv[2], argv[3], passwd);
+        if (safely_destroy_password(passwd) != 0) return 0; 
     } else if (!strcmp(argv[1], "--delete-profile")) {
         if (argv[2] == NULL) return help();
         if (argv[3] == NULL) return help();

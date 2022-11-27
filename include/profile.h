@@ -9,7 +9,7 @@
 #define CONNECTED true
 #define DISCONECTED false
 
-#define PASSWD_MAX 120
+#define PASSWD_MAX 32
 
 namespace Himitsu {
 
@@ -19,8 +19,9 @@ namespace Himitsu {
             std::map<std::string, std::string> passwords; // The encrypted passwords.
             std::vector<std::string> services;            // All the unvailable services.
             std::string pname;                            // The name of the file that is acosiated with the profile.
-            char *plock;                                  // The master password of the profile. The addresses are locked in memory, never go to disk.
-            unsigned char *plock_enc;                     // Encrypted lock (a.k.a master password).
+            char plock[PASSWD_MAX];                       // The unencrypted master password, only in requests.
+            int plock_enc_size;                           // The actual size of the encrypted password.
+            unsigned char plock_enc[128];                 // Encrypted lock (a.k.a master password).
             unsigned char *plock_key;                     // one-time encryption key for lock.
             unsigned char *plock_iv;                      // one-time encryption key iv, for AES.
             bool status;                                  // The status of the profile, connected or disconnected.

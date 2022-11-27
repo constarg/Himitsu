@@ -93,16 +93,20 @@ static inline unsigned char *get_aes_iv(int len)
 const unsigned char *Profile::get_sha256(const char *msg, size_t s_msg)
 {
     unsigned char *byte_arr = (unsigned char *) malloc(sizeof(char) * 32);
+    int err1, err2, err3;
 
     EVP_MD_CTX *ctx;
     ctx = EVP_MD_CTX_new();
-    EVP_DigestInit_ex(ctx, EVP_sha256(), NULL);
-    EVP_DigestUpdate(ctx, msg, s_msg);
-    EVP_DigestFinal_ex(ctx, byte_arr, NULL);
+    if (!ctx) return nullptr;
+
+    err1 = EVP_DigestInit_ex(ctx, EVP_sha256(), NULL);
+    err2 = EVP_DigestUpdate(ctx, msg, s_msg);
+    err3 = EVP_DigestFinal_ex(ctx, byte_arr, NULL);
 
     EVP_MD_CTX_free(ctx);
 
-    return (const unsigned char *) byte_arr;
+    return (err1 != 1 || err2 != 1 ||
+            err3 != 1)? nullptr : (const unsigned char *) byte_arr;
 }
 
 int Profile::encrypt_data(unsigned char *dst, const unsigned char *data, 
@@ -113,8 +117,10 @@ int Profile::encrypt_data(unsigned char *dst, const unsigned char *data,
     int dst_size = 0;
     int err1, err2, err3;
 
-    // Enccypt the data using AES 256.
     ctx  = EVP_CIPHER_CTX_new();
+    if (!ctx) return -1;
+
+    // Enccypt the data using AES 256. 
     err1 = EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
     err2 = EVP_EncryptUpdate(ctx, dst, &dst_size, data, size);
     err3 = EVP_EncryptFinal(ctx, dst + tmp_size, &tmp_size);
@@ -123,7 +129,7 @@ int Profile::encrypt_data(unsigned char *dst, const unsigned char *data,
     dst_size += tmp_size; // complete the size of encrypted data.
     
     return (err1 != 1 || err2 != 1 ||
-            err3 != 1 || !ctx)? -1 : dst_size;
+            err3 != 1)? -1 : dst_size;
 }
 
 int Profile::decrypt_data(unsigned char *dst, const unsigned char *data, 
@@ -134,8 +140,10 @@ int Profile::decrypt_data(unsigned char *dst, const unsigned char *data,
     int dst_size = 0;
     int err1, err2, err3;
 
-    // Enccypt the data using AES 256.
     ctx  = EVP_CIPHER_CTX_new();
+    if (!ctx) return -1;
+
+    // Deccypt the data using AES 256.
     err1 = EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
     err2 = EVP_DecryptUpdate(ctx, dst, &dst_size, data, size);
     err3 = EVP_DecryptFinal(ctx, dst + tmp_size, &tmp_size);
@@ -144,7 +152,7 @@ int Profile::decrypt_data(unsigned char *dst, const unsigned char *data,
     dst_size += tmp_size; // complete the size of encrypted data.
     
     return (err1 != 1 || err2 != 1 ||
-            err3 != 1 || !ctx)? -1 : dst_size;
+            err3 != 1)? -1 : dst_size;
 }
 
 /**
@@ -155,7 +163,9 @@ int Profile::decrypt_data(unsigned char *dst, const unsigned char *data,
 
 Profile::Profile()
 {
-    this->status = DISCONECTED;
+    this->status    = DISCONECTED;
+    this->plock_key = nullptr;
+    this->plock_iv  = nullptr;
 }
 
 
@@ -197,6 +207,15 @@ bool Profile::mk_new_prof(std::string pname, std::string username,
     username_sha256 = Profile::get_sha256(username.c_str(), username.size());
     lock_sha256     = Profile::get_sha256(lock.c_str(), lock.size());
     iv_aes          = get_aes_iv(16);
+
+    if (!username_sha256 || !lock_sha256
+        || !iv_aes) {
+        free((void *) username_sha256);
+        free((void *) lock_sha256);
+        free((void *) iv_aes);
+        close(prof_fd);
+        return false;
+    } 
 
     err1 = write(prof_fd, (const void *) username_sha256, 32);
     err2 = write(prof_fd, (const void *) lock_sha256, 32);
@@ -260,38 +279,42 @@ void Profile::connect(std::string username, const char *lock,
     // From system.
     struct logins login;                // The hashed logins.
 
+    int cmp = 0;
+
     // Get login info.
     if (get_login_info(&login, pname) == -1) return;
 
     // hash the input.
     in_username_sha256 = Profile::get_sha256(username.c_str(), username.size());
     in_lock_sha256 = Profile::get_sha256(lock, strlen(lock));
+    if (!in_username_sha256 || !in_lock_sha256) return;
 
     // compare the hashes from the system and the input hashes.
-    if (memcmp(in_username_sha256, login.username, 32) != 0) return;
-    if (memcmp(in_lock_sha256, login.lock, 32) != 0) return;
+    cmp  = memcmp(in_username_sha256, login.username, 32);
+    cmp += memcmp(in_lock_sha256, login.lock, 32);
+    free((void *) in_username_sha256);
+    free((void *) in_lock_sha256);
+    // check if the  hashes are equal.
+    if (cmp != 0) return;
 
     // if the above stament didn't return, when the user put the right credentials.
     // before check the account as connected we have to do a few jobs.
     // encrypt the lock (a.k.a master password) using random bytes.
-    this->plock_key = get_aes_iv(32); // behave this, as just random bytes.
-    this->plock_iv  = get_aes_iv(16); // behave as the actual iv.
+    this->plock_key = get_aes_iv(32); // this behaves as just random bytes. // TODO - this value must be freed.
+    this->plock_iv  = get_aes_iv(16); // behave as the actual iv.           // TODO - this value must be freed.
 
     if (this->plock_iv == nullptr ||
         this->plock_key == nullptr) return;
 
     // encrypt lock.
-    // TODO - encrypt
-      
+    this->plock_enc_size = Profile::encrypt_data(this->plock_enc, 
+                                                 (const unsigned char *) lock, 
+                                                 strlen(lock), this->plock_key, 
+                                                 this->plock_iv);
     // If all of the above actions are done,
     // then the user is connected.
     this->status = CONNECTED;
     this->pname  = pname;
-    free((void *) in_username_sha256);
-    free((void *) in_lock_sha256);
-    // TODO - only test, DELETE THIS.
-    free((void *) plock_key);
-    free((void *) plock_iv);
 }
 
 void Profile::disconnect()
