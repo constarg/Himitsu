@@ -105,35 +105,46 @@ const unsigned char *Profile::get_sha256(const char *msg, size_t s_msg)
     return (const unsigned char *) byte_arr;
 }
 
-unsigned char *Profile::encrypt_data(const unsigned char *lock, const unsigned char *iv,
-                                     const unsigned char *data, int size)
+int Profile::encrypt_data(unsigned char *dst, const unsigned char *data, 
+                          int size, unsigned char *key, unsigned char *iv)
 {
-    unsigned char *enc = (unsigned char *) malloc(sizeof(char) * 48);
-    memset(enc, 0x0, 48);
-    int enc_size = 0;
-    int len = 0;
-
     EVP_CIPHER_CTX *ctx;
-    ctx = EVP_CIPHER_CTX_new();
+    int tmp_size = 0;
+    int dst_size = 0;
+    int err1, err2, err3;
 
-    EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, lock, iv);
-    EVP_EncryptUpdate(ctx, enc, &len, data, size);
-    EVP_EncryptFinal(ctx, enc + len, &enc_size);
-
-    std::cout << enc_size + len << std::endl;
-
-    int fd = open("/home/rounnus/test/out2.txt", O_WRONLY);
-    write(fd, enc, enc_size + len);
-    close(fd);
+    // Enccypt the data using AES 256.
+    ctx  = EVP_CIPHER_CTX_new();
+    err1 = EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
+    err2 = EVP_EncryptUpdate(ctx, dst, &dst_size, data, size);
+    err3 = EVP_EncryptFinal(ctx, dst + tmp_size, &tmp_size);
 
     EVP_CIPHER_CTX_free(ctx);
-    return enc; 
+    dst_size += tmp_size; // complete the size of encrypted data.
+    
+    return (err1 != 1 || err2 != 1 ||
+            err3 != 1 || !ctx)? -1 : dst_size;
 }
 
-// TODO - return a pair of int and the decrypt data
-unsigned char *Profile::decrypt_data(std::string enc_data)
+int Profile::decrypt_data(unsigned char *dst, const unsigned char *data, 
+                          int size, unsigned char *key, unsigned char *iv)
 {
-    return nullptr;
+    EVP_CIPHER_CTX *ctx;
+    int tmp_size = 0;
+    int dst_size = 0;
+    int err1, err2, err3;
+
+    // Enccypt the data using AES 256.
+    ctx  = EVP_CIPHER_CTX_new();
+    err1 = EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
+    err2 = EVP_DecryptUpdate(ctx, dst, &dst_size, data, size);
+    err3 = EVP_DecryptFinal(ctx, dst + tmp_size, &tmp_size);
+
+    EVP_CIPHER_CTX_free(ctx);
+    dst_size += tmp_size; // complete the size of encrypted data.
+    
+    return (err1 != 1 || err2 != 1 ||
+            err3 != 1 || !ctx)? -1 : dst_size;
 }
 
 /**
@@ -270,17 +281,8 @@ void Profile::connect(std::string username, const char *lock,
         this->plock_key == nullptr) return;
 
     // encrypt lock.
-    this->plock_enc = encrypt_data(this->plock_key, this->plock_iv,
-                                   (unsigned char *) lock, strlen(lock));
-  
-    int fd = open("/home/rounnus/test/key.txt", O_WRONLY | O_CREAT);
-    write(fd, plock_key, 32);
-    close(fd);
-
-    fd = open("/home/rounnus/test/iv.txt", O_WRONLY | O_CREAT);
-    write(fd, plock_iv, 16);
-    close(fd);
-
+    // TODO - encrypt
+      
     // If all of the above actions are done,
     // then the user is connected.
     this->status = CONNECTED;

@@ -32,22 +32,13 @@ namespace Himitsu {
              * @param s_msg The size of the message.
              */
             static const unsigned char *get_sha256(const char *msg, size_t s_msg);
-
-            /**
-             * *encrypt_data* encrypts an record of data
-             * @param lock The master passowrd of the profile.
-             * @param iv   The initialization vector for the aes.
-             * @param data The data to encrypt.
-             * @param size The size of the data.
-             */
-            static unsigned char *encrypt_data(const unsigned char *lock, const unsigned char *iv,
-                                               const unsigned char *data, int size);
-
-            /**
-             * *decrypt_data* decrypts an record of data.
-             * @param enc_data The encrypted data.
-             */
-            static unsigned char *decrypt_data(std::string enc_data);
+            
+            // TODO - write doc
+            static int encrypt_data(unsigned char *dst, const unsigned char *data, 
+                                    int size, unsigned char *key, unsigned char *iv);
+            // TODO - write doc
+            static int decrypt_data(unsigned char *dst, const unsigned char *data, 
+                                    int size, unsigned char *key, unsigned char *iv);
                     
         public:
             Profile();
