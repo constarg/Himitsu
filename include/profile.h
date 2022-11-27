@@ -34,12 +34,27 @@ namespace Himitsu {
              */
             static const unsigned char *get_sha256(const char *msg, size_t s_msg);
             
-            // TODO - write doc
+            /**
+             * *encrypt_data* Enccypts data using AES 256 bit.
+             * @param dst The encrypted data.
+             * @param data The data to ecnrypt.
+             * @param size The size of the data.
+             * @param key The key to use, to encrypt.
+             * @param iv The initialization vector.
+             */
             static int encrypt_data(unsigned char *dst, const unsigned char *data, 
-                                    int size, unsigned char *key, unsigned char *iv);
-            // TODO - write doc
+                                    int size, const unsigned char *key, const unsigned char *iv);
+            
+            /**
+             * *encrypt_data* Decrypts data using AES 256 bit.
+             * @param dst The decrepted data.
+             * @param data The data to decrept.
+             * @param size The size of the data.
+             * @param key The key to use, to encrypt.
+             * @param iv The initialization vector.
+             */
             static int decrypt_data(unsigned char *dst, const unsigned char *data, 
-                                    int size, unsigned char *key, unsigned char *iv);
+                                    int size, const unsigned char *key, const unsigned char *iv);
                     
         public:
             Profile();
@@ -133,7 +148,7 @@ namespace Himitsu {
              * @param serv_name The name of the service.
              * @param pwd The password.
              */
-            bool add_pwd(std::string serv_name, std::string pwd);
+            bool add_pwd(std::string serv_name, std::string username, const char *pwd);
 
     };
 }

@@ -110,7 +110,7 @@ const unsigned char *Profile::get_sha256(const char *msg, size_t s_msg)
 }
 
 int Profile::encrypt_data(unsigned char *dst, const unsigned char *data, 
-                          int size, unsigned char *key, unsigned char *iv)
+                          int size, const unsigned char *key, const unsigned char *iv)
 {
     EVP_CIPHER_CTX *ctx;
     int tmp_size = 0;
@@ -133,7 +133,7 @@ int Profile::encrypt_data(unsigned char *dst, const unsigned char *data,
 }
 
 int Profile::decrypt_data(unsigned char *dst, const unsigned char *data, 
-                          int size, unsigned char *key, unsigned char *iv)
+                          int size, const unsigned char *key, const unsigned char *iv)
 {
     EVP_CIPHER_CTX *ctx;
     int tmp_size = 0;
@@ -354,9 +354,10 @@ std::vector<std::string> Profile::get_list_of_services() const
 }
             
 
-bool Profile::add_pwd(std::string serv_name, std::string pwd)
+bool Profile::add_pwd(std::string serv_name, std::string username, const char *pwd)
 {
-    return this->passwords.emplace(std::make_pair(serv_name, pwd)).second; // returns if the insertion is done or not.
+    //return this->passwords.emplace(std::make_pair(serv_name, pwd)).second; // returns if the insertion is done or not.
+    return true;
 }
 
 
