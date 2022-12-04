@@ -17,6 +17,10 @@
 using namespace Himitsu;
 
 
+#define IV_LEN      0x10  // 127 - bits, 16 bytes.
+#define AES_LEN     0x20  // 256 - bits, 32 bytes.
+#define SHA256_LEN  0x20  // 256 - bits, 32 bytes. (initialization vector)
+
 #define PROFILE_LOC()                           \
     + "/"                                       \
     +  ".local/share/Himitsu/profiles/"         \
@@ -33,9 +37,9 @@ using namespace Himitsu;
  */
 struct logins 
 {
-    unsigned char username[32];    // The usernmae of the profile.
-    unsigned char lock[32];        // The master password of the profile.
-    unsigned char iv[32];          // The initialization vector of the profile.
+    unsigned char username[SHA256_LEN];    // The usernmae of the profile.
+    unsigned char lock[SHA256_LEN];        // The master password of the profile.
+    unsigned char iv[IV_LEN];          // The initialization vector of the profile.
 };
 
 
@@ -63,17 +67,16 @@ static int get_login_info(struct logins *dst, std::string pname)
     memset(&login_info, 0x0, sizeof(login_info));
 
     // Get the username.
-    if (read(fd, login_info.username, 32) == -1) return -1;
-    if (read(fd, login_info.lock, 32) == -1) return -1;
-    if (read(fd, login_info.iv, 32) == -1) return -1;
+    if (read(fd, login_info.username, SHA256_LEN) == -1) return -1;
+    if (read(fd, login_info.lock, SHA256_LEN) == -1) return -1;
+    if (read(fd, login_info.iv, IV_LEN) == -1) return -1;
 
     memcpy(dst, &login_info, sizeof(login_info));
     close(fd);
     return 0;
 }
 
-// Get an random initialization vector for aes.
-static inline unsigned char *get_aes_iv(int len)
+static inline unsigned char *get_random_bytes(int len)
 {
     unsigned char *iv = (unsigned char *) malloc(sizeof(char) *
                                                  len); // 256 - bits, aes256
@@ -85,6 +88,12 @@ static inline unsigned char *get_aes_iv(int len)
     return nullptr;
 }
 
+// Get an random initialization vector for aes.
+static inline unsigned char *get_aes_iv()
+{
+    return get_random_bytes(IV_LEN);
+}
+
 /**
  * ********************
  *    Private Methods
@@ -92,7 +101,7 @@ static inline unsigned char *get_aes_iv(int len)
  */
 const unsigned char *Profile::get_sha256(const char *msg, size_t s_msg)
 {
-    unsigned char *byte_arr = (unsigned char *) malloc(sizeof(char) * 32);
+    unsigned char *byte_arr = (unsigned char *) malloc(sizeof(char) * SHA256_LEN);
     int err1, err2, err3;
 
     EVP_MD_CTX *ctx;
@@ -206,7 +215,7 @@ bool Profile::mk_new_prof(std::string pname, std::string username,
     // get the hashes
     username_sha256 = Profile::get_sha256(username.c_str(), username.size());
     lock_sha256     = Profile::get_sha256(lock.c_str(), lock.size());
-    iv_aes          = get_aes_iv(16);
+    iv_aes          = get_aes_iv();
 
     if (!username_sha256 || !lock_sha256
         || !iv_aes) {
@@ -217,9 +226,9 @@ bool Profile::mk_new_prof(std::string pname, std::string username,
         return false;
     } 
 
-    err1 = write(prof_fd, (const void *) username_sha256, 32);
-    err2 = write(prof_fd, (const void *) lock_sha256, 32);
-    err3 = write(prof_fd, (const void *) iv_aes, 16);
+    err1 = write(prof_fd, (const void *) username_sha256, SHA256_LEN);
+    err2 = write(prof_fd, (const void *) lock_sha256, SHA256_LEN);
+    err3 = write(prof_fd, (const void *) iv_aes, IV_LEN);
 
     free((void *) username_sha256);
     free((void *) lock_sha256);
@@ -290,8 +299,8 @@ void Profile::connect(std::string username, const char *lock,
     if (!in_username_sha256 || !in_lock_sha256) return;
 
     // compare the hashes from the system and the input hashes.
-    cmp  = memcmp(in_username_sha256, login.username, 32);
-    cmp += memcmp(in_lock_sha256, login.lock, 32);
+    cmp  = memcmp(in_username_sha256, login.username, SHA256_LEN);
+    cmp += memcmp(in_lock_sha256, login.lock, SHA256_LEN);
     free((void *) in_username_sha256);
     free((void *) in_lock_sha256);
     // check if the  hashes are equal.
@@ -300,8 +309,8 @@ void Profile::connect(std::string username, const char *lock,
     // if the above stament didn't return, when the user put the right credentials.
     // before check the account as connected we have to do a few jobs.
     // encrypt the lock (a.k.a master password) using random bytes.
-    this->plock_key = get_aes_iv(32); // this behaves as just random bytes. // TODO - this value must be freed.
-    this->plock_iv  = get_aes_iv(16); // behave as the actual iv.           // TODO - this value must be freed.
+    this->plock_key = get_random_bytes(AES_LEN); // this behaves as just random bytes. // TODO - this value must be freed.
+    this->plock_iv  = get_aes_iv();              // behave as the actual iv.           // TODO - this value must be freed.
 
     if (this->plock_iv == nullptr ||
         this->plock_key == nullptr) return;
