@@ -16,6 +16,7 @@ locations:
 	mkdir -p ~/.local/share/Himitsu 
 	mkdir -p ~/.local/share/Himitsu/profiles
 	mkdir -p ~/.local/share/Himitsu/logins
+	mkdir -p ~/.local/share/Himitsu/records
 
 ./build/profile.o: ./src/profile.cpp
 	g++ -Wall ${header_loc} -c ./src/profile.cpp -lcrypto -o ./build/profile.o

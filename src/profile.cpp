@@ -17,17 +17,25 @@
 using namespace Himitsu;
 
 
-#define IV_LEN      0x10  // 127 - bits, 16 bytes.
-#define AES_LEN     0x20  // 256 - bits, 32 bytes.
-#define SHA256_LEN  0x20  // 256 - bits, 32 bytes. (initialization vector)
+#define IV_LEN          0x10  // 127 - bits, 16 bytes. (initialization vector)
+#define AES_LEN         0x20  // 256 - bits, 32 bytes.
+#define SHA256_LEN      0x20  // 256 - bits, 32 bytes. 
+
+// *record errors*
+#define REC_EXIST       -0x2  // The requested record already exist.
+#define BAD_CRED        -0x3  // Bad username of password.
 
 #define PROFILE_LOC()                           \
     + "/"                                       \
-    +  ".local/share/Himitsu/profiles/"         \
+    +  ".local/share/Himitsu/profiles/"         
 
 #define PROFILE_LOG_INFO()                      \
     + "/"                                       \
-    + ".local/share/Himitsu/logins/"            \
+    + ".local/share/Himitsu/logins/"            
+
+#define RECORD_LOC()                            \
+    + "/"                                       \
+    + ".local/share/Himitsu/records/"
 
 /**
  *  This structure is used to represent the
@@ -39,9 +47,19 @@ struct logins
 {
     unsigned char username[SHA256_LEN];    // The usernmae of the profile.
     unsigned char lock[SHA256_LEN];        // The master password of the profile.
-    unsigned char iv[IV_LEN];          // The initialization vector of the profile.
+    unsigned char iv[IV_LEN];              // The initialization vector of the profile.
 };
 
+/**
+ *  A record is just an online account
+ *  that is stored in the password manager
+ *  database.
+ */
+struct record
+{
+    unsigned char *username;               // The username of the record.
+    unsigned char *password;               // The password of the record.
+};
 
 /**
  * *********************
@@ -76,6 +94,66 @@ static int get_login_info(struct logins *dst, std::string pname)
     return 0;
 }
 
+/**
+ *  *is_rec_exists* function checks 
+ *  if a record already exists.
+ */
+static bool is_rec_exists(std::string serv)
+{
+    std::string home_prefix = getenv("HOME");
+    std::string record_location = home_prefix + RECORD_LOC() + serv;
+
+    std::ofstream rfile;
+
+    rfile.open(record_location, std::ios::in);
+    // check if the file exist.
+    if (rfile.is_open()) {
+        rfile.close();
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * *get_record* function get's the username and the password
+ * of a specific record. To find the right username and password
+ * the password manager must know the service.
+ *
+ * @param dst Where the record is stored in success.
+ * @param serv The service of interest.
+ * @return 0 on success or -1 on failrure.
+ */
+static int get_record(struct record *dst, std::string serv)
+{
+    // TODO - get the line at the specific file.
+    // The file is created using the serv name.
+}
+
+static inline int encrypt_record(struct record *rec)
+{
+
+}
+
+static int save_record(const struct record *src, std::string serv)
+{
+    // check if the service already exist.
+    if (is_rec_exists(serv)) return REC_EXIST;
+
+    // if the record doesn't exists.
+    // Check if anything is wrong in username or password.
+    if (src->username == NULL ||
+        src->password == NULL) return BAD_CRED;
+
+    // convert username and password to hex.
+    char *hex_username = OPENSSL_buf2hexstr();
+}
+
+static int edit_record(const struct record *src, std::string serv)
+{
+
+}
+
 static inline unsigned char *get_random_bytes(int len)
 {
     unsigned char *iv = (unsigned char *) malloc(sizeof(char) *
@@ -93,6 +171,7 @@ static inline unsigned char *get_aes_iv()
 {
     return get_random_bytes(IV_LEN);
 }
+
 
 /**
  * ********************
