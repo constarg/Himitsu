@@ -45,9 +45,9 @@ using namespace Himitsu;
  */
 struct logins 
 {
-    unsigned char username[SHA256_LEN];    // The usernmae of the profile.
-    unsigned char lock[SHA256_LEN];        // The master password of the profile.
-    unsigned char iv[IV_LEN];              // The initialization vector of the profile.
+    unsigned char l_username[SHA256_LEN];    // The usernmae of the profile.
+    unsigned char l_lock[SHA256_LEN];        // The master password of the profile.
+    unsigned char l_iv[IV_LEN];              // The initialization vector of the profile.
 };
 
 /**
@@ -57,8 +57,8 @@ struct logins
  */
 struct record
 {
-    unsigned char *username;               // The username of the record.
-    unsigned char *password;               // The password of the record.
+    unsigned char *r_username;               // The username of the record.
+    unsigned char *r_password;               // The password of the record.
 };
 
 /**
@@ -85,9 +85,9 @@ static int get_login_info(struct logins *dst, std::string pname)
     memset(&login_info, 0x0, sizeof(login_info));
 
     // Get the username.
-    if (read(fd, login_info.username, SHA256_LEN) == -1) return -1;
-    if (read(fd, login_info.lock, SHA256_LEN) == -1) return -1;
-    if (read(fd, login_info.iv, IV_LEN) == -1) return -1;
+    if (read(fd, login_info.l_username, SHA256_LEN) == -1) return -1;
+    if (read(fd, login_info.l_lock, SHA256_LEN) == -1) return -1;
+    if (read(fd, login_info.l_iv, IV_LEN) == -1) return -1;
 
     memcpy(dst, &login_info, sizeof(login_info));
     close(fd);
@@ -130,10 +130,6 @@ static int get_record(struct record *dst, std::string serv)
     // The file is created using the serv name.
 }
 
-static inline int encrypt_record(struct record *rec)
-{
-
-}
 
 static int save_record(const struct record *src, std::string serv)
 {
@@ -142,8 +138,20 @@ static int save_record(const struct record *src, std::string serv)
 
     // if the record doesn't exists.
     // Check if anything is wrong in username or password.
-    if (src->username == NULL ||
-        src->password == NULL) return BAD_CRED;
+    if (src->r_username == NULL ||
+        src->r_password == NULL) return BAD_CRED;
+
+    //Profile::encrypt_data(unsigned char *dst, const unsigned char *data, 
+    //                      int size, const unsigned char *key, const unsigned char *iv)
+
+    // TODO - decrypt master password, to use it below.
+    // encrypt record.
+    // The size of the encrypted username and encrypted username.
+    char enc_username[ENC_MAX];
+    //int usern_enc_size = Profile::encrypt_data(enc_username, src->r_username,);
+    // The size of the encrypted password and encrypted password.
+    char enc_password[ENC_MAX];
+    int passwd_enc_size = ;
 
     // convert username and password to hex.
     char *hex_username = OPENSSL_buf2hexstr();
@@ -378,8 +386,8 @@ void Profile::connect(std::string username, const char *lock,
     if (!in_username_sha256 || !in_lock_sha256) return;
 
     // compare the hashes from the system and the input hashes.
-    cmp  = memcmp(in_username_sha256, login.username, SHA256_LEN);
-    cmp += memcmp(in_lock_sha256, login.lock, SHA256_LEN);
+    cmp  = memcmp(in_username_sha256, login.l_username, SHA256_LEN);
+    cmp += memcmp(in_lock_sha256, login.l_lock, SHA256_LEN);
     free((void *) in_username_sha256);
     free((void *) in_lock_sha256);
     // check if the  hashes are equal.
