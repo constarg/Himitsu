@@ -6,11 +6,13 @@
 #include <vector>
 #include <fstream>
 
-#define CONNECTED true
+#define CONNECTED   true
 #define DISCONECTED false
 
 #define PASSWD_MAX  32
 #define ENC_MAX     128
+
+
 
 namespace Himitsu {
 
@@ -20,9 +22,8 @@ namespace Himitsu {
             std::map<std::string, std::string> passwords; // The encrypted passwords.
             std::vector<std::string> services;            // All the unvailable services.
             std::string pname;                            // The name of the file that is acosiated with the profile.
-            char plock[PASSWD_MAX];                       // The unencrypted master password, only in requests.
             int plock_enc_size;                           // The actual size of the encrypted password.
-            unsigned char plock_enc[ENC_MAX];      // Encrypted lock (a.k.a master password).
+            unsigned char plock_enc[ENC_MAX];             // Encrypted lock (a.k.a master password).
             unsigned char *plock_key;                     // one-time encryption key for lock.
             unsigned char *plock_iv;                      // one-time encryption key iv, for AES.
             bool status;                                  // The status of the profile, connected or disconnected.
@@ -118,12 +119,6 @@ namespace Himitsu {
             std::string get_active_prof();
 
             /**
-             * *count_pwds* method counts the number of passwords in
-             * an connected account.
-             */
-            int count_pwds() const;
-
-            /**
              * *get_pwd* method retrieves the password of the
              * specific service.
              * @param serv The service.
@@ -131,17 +126,45 @@ namespace Himitsu {
             std::string get_pwd(std::string serv) const;
 
             /**
-             * *set_lock* method saves the plock password in the
-             * instance variable plock of the class.
-             * @param plock Pointer to the master password of the user.
-             */
-            void set_lock(char *plock);
-            
-            /**
              * *get_list_of_services* returns all the 
              * services that exists in the password list.
              */
             std::vector<std::string> get_list_of_services() const;
+
+            
+            /**
+             * The functions below is all the informations
+             * that needed in order to decrypt the master 
+             * password.
+             */
+            /**
+             * Get's the size of the encypted 
+             * master password.
+             */
+            int get_master_pwd_size() const;
+
+            /**
+             * Get's the encypted master password.
+             */
+            const unsigned char *get_master_pwd() const;
+
+            /**
+             * Get's the key used to enctypt the 
+             * master password.
+             */
+            const unsigned char *get_master_used_key() const;
+
+            /**
+             * Get's the initialization vector used
+             * to ecnrypt the master password.
+             */
+            const unsigned char *get_master_used_iv() const;
+
+            /**
+             * *count_pwds* method counts the number of passwords in
+             * an connected account.
+             */
+            int count_pwds() const;
 
             /**
              * *add_pwd* method adds an new password in the 
@@ -150,7 +173,6 @@ namespace Himitsu {
              * @param pwd The password.
              */
             bool add_pwd(std::string serv_name, std::string username, const char *pwd);
-
     };
 }
 

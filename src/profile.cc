@@ -10,7 +10,7 @@
 #include <dirent.h>
 #include <cstring>
 
-#include "profile.h"
+#include "profile.hh"
 
 #include <iostream>
 
@@ -144,17 +144,20 @@ static int save_record(const struct record *src, std::string serv)
     //Profile::encrypt_data(unsigned char *dst, const unsigned char *data, 
     //                      int size, const unsigned char *key, const unsigned char *iv)
 
-    // TODO - decrypt master password, to use it below.
-    // encrypt record.
     // The size of the encrypted username and encrypted username.
     char enc_username[ENC_MAX];
+    int username_enc_size;
     //int usern_enc_size = Profile::encrypt_data(enc_username, src->r_username,);
     // The size of the encrypted password and encrypted password.
     char enc_password[ENC_MAX];
-    int passwd_enc_size = ;
+    int passwd_enc_size;
 
-    // convert username and password to hex.
-    char *hex_username = OPENSSL_buf2hexstr();
+    // storage for converted to hex values.
+    char *hex_username;
+    char *hex_password;
+
+    // Get master password.
+    // TODO - protect the area used to store master password.
 }
 
 static int edit_record(const struct record *src, std::string serv)
@@ -266,7 +269,7 @@ Profile::Profile()
 
 
 bool Profile::mk_new_prof(std::string pname, std::string username,
-                                 std::string lock)
+                          std::string lock)
 {
     std::string home_prefix = getenv("HOME");
     std::string prof_location = home_prefix + PROFILE_LOC() + pname; // The location where the profiles is stored.
@@ -393,6 +396,7 @@ void Profile::connect(std::string username, const char *lock,
     // check if the  hashes are equal.
     if (cmp != 0) return;
 
+    // TODO - PROTECT THE DATA FROM WRITING THEMSELF IN DISK.
     // if the above stament didn't return, when the user put the right credentials.
     // before check the account as connected we have to do a few jobs.
     // encrypt the lock (a.k.a master password) using random bytes.
@@ -456,4 +460,22 @@ bool Profile::add_pwd(std::string serv_name, std::string username, const char *p
     return true;
 }
 
+int Profile::get_master_pwd_size() const
+{
+    return this->plock_enc_size;
+}
 
+const unsigned char *Profile::get_master_pwd() const
+{
+    return this->plock_enc;
+}
+
+const unsigned char *Profile::get_master_used_key() const
+{
+    return this->plock_key;
+}
+
+const unsigned char *Profile::get_master_used_iv() const
+{
+    return this->plock_iv;
+}

@@ -5,7 +5,7 @@
 #include <openssl/crypto.h>
 #include <sys/mman.h>
 
-#include "profile.h"
+#include "profile.hh"
 
 // Terminal modes.
 #define HIDE 1

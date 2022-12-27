@@ -3,7 +3,7 @@ header_loc = -I include/
 
 
 all: dir_make locations ${object_files}
-	g++ -Wall ${header_loc} ./src/main.cpp ${object_files} -lcrypto -o ./bin/himitsu
+	g++ -Wall ${header_loc} ./src/main.cc ${object_files} -lcrypto -o ./bin/himitsu
 
 install:
 	cp ./bin/himitsu ~/.local/bin/	
@@ -18,8 +18,8 @@ locations:
 	mkdir -p ~/.local/share/Himitsu/logins
 	mkdir -p ~/.local/share/Himitsu/records
 
-./build/profile.o: ./src/profile.cpp
-	g++ -Wall ${header_loc} -c ./src/profile.cpp -lcrypto -o ./build/profile.o
+./build/profile.o: ./src/profile.cc
+	g++ -Wall ${header_loc} -c ./src/profile.cc -lcrypto -o ./build/profile.o
 
 clean:
 	rm -rf ./build/
