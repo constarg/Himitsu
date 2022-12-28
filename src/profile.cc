@@ -161,7 +161,6 @@ static int edit_record(const struct record *src, std::string serv)
     return 0;
 }
 
-
 /**
  * ********************
  *    Public Methods
@@ -173,7 +172,6 @@ Profile::Profile()
     this->status    = DISCONECTED;
     this->security_manager = new Security(); 
 }
-
 
 bool Profile::mk_new_prof(std::string pname, std::string username,
                           std::string lock)
@@ -303,6 +301,9 @@ void Profile::connect(std::string username, const char *lock,
     // check if the  hashes are equal.
     if (cmp != 0) return;
 
+    // encrypt the master password.
+    if (this->security_manager->encrypt_master_pwd(lock) != 0) return;
+
     // if the above stament didn't return, when the user put the right credentials.
     // before check the account as connected we have to do a few jobs.
     // encrypt the lock (a.k.a master password) using random bytes.
@@ -337,7 +338,6 @@ bool Profile::is_connected() const
     return this->status;
 }
 
-          
 std::string Profile::get_active_prof()
 {
     return this->pname;
@@ -353,13 +353,11 @@ std::string Profile::get_pwd(std::string serv) const
     return this->passwords.at(serv);
 }
            
-
 std::vector<std::string> Profile::get_list_of_services() const
 {
     return this->services;
 }
             
-
 bool Profile::add_pwd(std::string serv_name, std::string username, const char *pwd)
 {
     //return this->passwords.emplace(std::make_pair(serv_name, pwd)).second; // returns if the insertion is done or not.

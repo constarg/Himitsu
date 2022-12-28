@@ -51,6 +51,22 @@ namespace Himitsu {
             static int decrypt_data(unsigned char *dst, const unsigned char *data, 
                                     int size, const unsigned char *key, const unsigned char *iv);
 
+
+            /**
+             * Enccypt the master password and store's it
+             * in a memory protected address.
+             * @master The master password.
+             * @return 0 on success or -1 on error.
+             */
+            int encrypt_master_pwd(const char *master);
+
+            /**
+             * @return A memory protected pointer 
+             * that points to the unencrypted master
+             * password. NULL returns in case of an error.
+             */
+            char *decrypt_master_pwd();
+
             /**
              * The functions below is all the informations
              * that needed in order to decrypt the master 

@@ -82,6 +82,9 @@ int Security::decrypt_data(unsigned char *dst, const unsigned char *data,
             err3 != 1)? -1 : dst_size;
 }
 
+// TODO - make the encrypt master password method.
+// TODO - make the decrypt maste password method.
+
 unsigned char *Security::get_random_bytes(int len)
 {
     unsigned char *iv = (unsigned char *) malloc(sizeof(char) *
@@ -96,7 +99,7 @@ unsigned char *Security::get_random_bytes(int len)
 
 unsigned char *Security::get_aes_iv()
 {
-    return this->get_random_bytes(IV_LEN);
+    return Security::get_random_bytes(IV_LEN);
 }
 
 int Security::get_master_pwd_size()
