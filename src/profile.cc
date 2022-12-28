@@ -1,9 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <malloc.h>
-#include <openssl/evp.h>
-#include <openssl/rand.h>
-#include <openssl/err.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <memory.h>
@@ -11,15 +8,12 @@
 #include <cstring>
 
 #include "profile.hh"
+#include "security.hh"
 
 #include <iostream>
 
 using namespace Himitsu;
 
-
-#define IV_LEN          0x10  // 127 - bits, 16 bytes. (initialization vector)
-#define AES_LEN         0x20  // 256 - bits, 32 bytes.
-#define SHA256_LEN      0x20  // 256 - bits, 32 bytes. 
 
 // *record errors*
 #define REC_EXIST       -0x2  // The requested record already exist.
@@ -128,8 +122,8 @@ static int get_record(struct record *dst, std::string serv)
 {
     // TODO - get the line at the specific file.
     // The file is created using the serv name.
+    return 0;
 }
-
 
 static int save_record(const struct record *src, std::string serv)
 {
@@ -158,101 +152,15 @@ static int save_record(const struct record *src, std::string serv)
 
     // Get master password.
     // TODO - protect the area used to store master password.
+    return 0;
 }
 
 static int edit_record(const struct record *src, std::string serv)
 {
 
+    return 0;
 }
 
-static inline unsigned char *get_random_bytes(int len)
-{
-    unsigned char *iv = (unsigned char *) malloc(sizeof(char) *
-                                                 len); // 256 - bits, aes256
-
-    RAND_bytes(iv, len);
-    if (ERR_get_error() == 0) {
-        return iv;
-    }
-    return nullptr;
-}
-
-// Get an random initialization vector for aes.
-static inline unsigned char *get_aes_iv()
-{
-    return get_random_bytes(IV_LEN);
-}
-
-
-/**
- * ********************
- *    Private Methods
- * ********************
- */
-const unsigned char *Profile::get_sha256(const char *msg, size_t s_msg)
-{
-    unsigned char *byte_arr = (unsigned char *) malloc(sizeof(char) * SHA256_LEN);
-    int err1, err2, err3;
-
-    EVP_MD_CTX *ctx;
-    ctx = EVP_MD_CTX_new();
-    if (!ctx) return nullptr;
-
-    err1 = EVP_DigestInit_ex(ctx, EVP_sha256(), NULL);
-    err2 = EVP_DigestUpdate(ctx, msg, s_msg);
-    err3 = EVP_DigestFinal_ex(ctx, byte_arr, NULL);
-
-    EVP_MD_CTX_free(ctx);
-
-    return (err1 != 1 || err2 != 1 ||
-            err3 != 1)? nullptr : (const unsigned char *) byte_arr;
-}
-
-int Profile::encrypt_data(unsigned char *dst, const unsigned char *data, 
-                          int size, const unsigned char *key, const unsigned char *iv)
-{
-    EVP_CIPHER_CTX *ctx;
-    int tmp_size = 0;
-    int dst_size = 0;
-    int err1, err2, err3;
-
-    ctx  = EVP_CIPHER_CTX_new();
-    if (!ctx) return -1;
-
-    // Enccypt the data using AES 256. 
-    err1 = EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
-    err2 = EVP_EncryptUpdate(ctx, dst, &dst_size, data, size);
-    err3 = EVP_EncryptFinal(ctx, dst + tmp_size, &tmp_size);
-
-    EVP_CIPHER_CTX_free(ctx);
-    dst_size += tmp_size; // complete the size of encrypted data.
-    
-    return (err1 != 1 || err2 != 1 ||
-            err3 != 1)? -1 : dst_size;
-}
-
-int Profile::decrypt_data(unsigned char *dst, const unsigned char *data, 
-                          int size, const unsigned char *key, const unsigned char *iv)
-{
-    EVP_CIPHER_CTX *ctx;
-    int tmp_size = 0;
-    int dst_size = 0;
-    int err1, err2, err3;
-
-    ctx  = EVP_CIPHER_CTX_new();
-    if (!ctx) return -1;
-
-    // Deccypt the data using AES 256.
-    err1 = EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
-    err2 = EVP_DecryptUpdate(ctx, dst, &dst_size, data, size);
-    err3 = EVP_DecryptFinal(ctx, dst + tmp_size, &tmp_size);
-
-    EVP_CIPHER_CTX_free(ctx);
-    dst_size += tmp_size; // complete the size of encrypted data.
-    
-    return (err1 != 1 || err2 != 1 ||
-            err3 != 1)? -1 : dst_size;
-}
 
 /**
  * ********************
@@ -263,8 +171,7 @@ int Profile::decrypt_data(unsigned char *dst, const unsigned char *data,
 Profile::Profile()
 {
     this->status    = DISCONECTED;
-    this->plock_key = nullptr;
-    this->plock_iv  = nullptr;
+    this->security_manager = new Security(); 
 }
 
 
@@ -303,9 +210,9 @@ bool Profile::mk_new_prof(std::string pname, std::string username,
     prof_fd = open(login_location.c_str(), O_WRONLY | O_APPEND
                                          | O_CREAT, 0700);
     // get the hashes
-    username_sha256 = Profile::get_sha256(username.c_str(), username.size());
-    lock_sha256     = Profile::get_sha256(lock.c_str(), lock.size());
-    iv_aes          = get_aes_iv();
+    username_sha256 = Security::get_sha256(username.c_str(), username.size());
+    lock_sha256     = Security::get_sha256(lock.c_str(), lock.size());
+    iv_aes          = Security::get_aes_iv();
 
     if (!username_sha256 || !lock_sha256
         || !iv_aes) {
@@ -376,7 +283,7 @@ void Profile::connect(std::string username, const char *lock,
     const unsigned char *in_username_sha256; // hashed input username.
     const unsigned char *in_lock_sha256;     // hashed input lock.
     // From system.
-    struct logins login;                // The hashed logins.
+    struct logins login;                     // The hashed logins.
 
     int cmp = 0;
 
@@ -384,9 +291,9 @@ void Profile::connect(std::string username, const char *lock,
     if (get_login_info(&login, pname) == -1) return;
 
     // hash the input.
-    in_username_sha256 = Profile::get_sha256(username.c_str(), username.size());
-    in_lock_sha256 = Profile::get_sha256(lock, strlen(lock));
-    if (!in_username_sha256 || !in_lock_sha256) return;
+    in_username_sha256 = Security::get_sha256(username.c_str(), username.size());
+    in_lock_sha256 = Security::get_sha256(lock, strlen(lock));
+    in_lock_sha256 = Security::get_sha256(lock, strlen(lock));
 
     // compare the hashes from the system and the input hashes.
     cmp  = memcmp(in_username_sha256, login.l_username, SHA256_LEN);
@@ -396,21 +303,20 @@ void Profile::connect(std::string username, const char *lock,
     // check if the  hashes are equal.
     if (cmp != 0) return;
 
-    // TODO - PROTECT THE DATA FROM WRITING THEMSELF IN DISK.
     // if the above stament didn't return, when the user put the right credentials.
     // before check the account as connected we have to do a few jobs.
     // encrypt the lock (a.k.a master password) using random bytes.
-    this->plock_key = get_random_bytes(AES_LEN); // this behaves as just random bytes. // TODO - this value must be freed.
-    this->plock_iv  = get_aes_iv();              // behave as the actual iv.           // TODO - this value must be freed.
+    /*Security::plock_key = Security::get_random_bytes(AES_LEN); // this behaves as just random bytes. // TODO - this value must be freed.
+    Security::plock_iv  = Security::get_aes_iv();              // behave as the actual iv.           // TODO - this value must be freed.
 
-    if (this->plock_iv == nullptr ||
-        this->plock_key == nullptr) return;
+    if (Security::plock_iv == nullptr ||
+        Security::plock_key == nullptr) return;
 
     // encrypt lock.
-    this->plock_enc_size = Profile::encrypt_data(this->plock_enc, 
-                                                 (const unsigned char *) lock, 
-                                                 strlen(lock), this->plock_key, 
-                                                 this->plock_iv);
+    Security::plock_enc_size = Security::encrypt_data(Security::plock_enc, 
+                                                     (const unsigned char *) lock, 
+                                                      strlen(lock), Security::plock_key, 
+                                                      Security::plock_iv);*/
     // If all of the above actions are done,
     // then the user is connected.
     this->status = CONNECTED;
@@ -460,22 +366,3 @@ bool Profile::add_pwd(std::string serv_name, std::string username, const char *p
     return true;
 }
 
-int Profile::get_master_pwd_size() const
-{
-    return this->plock_enc_size;
-}
-
-const unsigned char *Profile::get_master_pwd() const
-{
-    return this->plock_enc;
-}
-
-const unsigned char *Profile::get_master_used_key() const
-{
-    return this->plock_key;
-}
-
-const unsigned char *Profile::get_master_used_iv() const
-{
-    return this->plock_iv;
-}

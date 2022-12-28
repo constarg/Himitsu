@@ -1,4 +1,4 @@
-object_files = ./build/profile.o
+object_files = ./build/profile.o ./build/security.o
 header_loc = -I include/
 
 
@@ -20,6 +20,9 @@ locations:
 
 ./build/profile.o: ./src/profile.cc
 	g++ -Wall ${header_loc} -c ./src/profile.cc -lcrypto -o ./build/profile.o
+
+./build/security.o: ./src/security.cc
+	g++ -Wall ${header_loc} -c ./src/security.cc -lcrypto -o ./build/security.o
 
 clean:
 	rm -rf ./build/
