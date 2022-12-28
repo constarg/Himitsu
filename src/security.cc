@@ -9,7 +9,11 @@ using namespace Himitsu;
 
 Security::Security()
 {
-    // TODO - secure here the private fields.
+    // Allocate space for the sensitive data.
+    this->plock_enc      = (unsigned char *) OPENSSL_malloc(sizeof(char) * ENC_MAX);
+    this->plock_enc_size = (unsigned int  *) OPENSSL_malloc(sizeof(unsigned int));
+
+    // TODO - protect the memory.
 }
 
 Security::~Security()
@@ -89,7 +93,7 @@ unsigned char *Security::get_random_bytes(int len)
 {
     unsigned char *iv = (unsigned char *) malloc(sizeof(char) *
                                                  len); // 256 - bits, aes256
-
+    // TODO - PROTECT MEMORY.
     RAND_bytes(iv, len);
     if (ERR_get_error() == 0) {
         return iv;
@@ -102,7 +106,7 @@ unsigned char *Security::get_aes_iv()
     return Security::get_random_bytes(IV_LEN);
 }
 
-int Security::get_master_pwd_size()
+const unsigned int *Security::get_master_pwd_size()
 {
     return this->plock_enc_size;
 }

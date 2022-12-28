@@ -13,8 +13,8 @@ namespace Himitsu {
     
     class Security {
         private:
-            int            plock_enc_size;                // The actual size of the encrypted password.
-            unsigned char  plock_enc[ENC_MAX];            // Encrypted lock (a.k.a master password).
+            unsigned int  *plock_enc_size;                // The actual size of the encrypted password.
+            unsigned char *plock_enc;                     // Encrypted lock (a.k.a master password).
             unsigned char *plock_key;                     // one-time encryption key for lock.
             unsigned char *plock_iv;                      // one-time encryption key iv, for AES.
             
@@ -76,7 +76,7 @@ namespace Himitsu {
              * @return the size of the encypted 
              * master password.
              */
-            int get_master_pwd_size();
+            const unsigned int *get_master_pwd_size();
 
             /**
              * @return the encypted master password.

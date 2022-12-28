@@ -169,8 +169,13 @@ static int edit_record(const struct record *src, std::string serv)
 
 Profile::Profile()
 {
-    this->status    = DISCONECTED;
+    this->status           = DISCONECTED;
     this->security_manager = new Security(); 
+}
+
+Profile::~Profile()
+{
+    delete this->security_manager;
 }
 
 bool Profile::mk_new_prof(std::string pname, std::string username,
@@ -290,8 +295,8 @@ void Profile::connect(std::string username, const char *lock,
 
     // hash the input.
     in_username_sha256 = Security::get_sha256(username.c_str(), username.size());
-    in_lock_sha256 = Security::get_sha256(lock, strlen(lock));
-    in_lock_sha256 = Security::get_sha256(lock, strlen(lock));
+    in_lock_sha256     = Security::get_sha256(lock, strlen(lock));
+    in_lock_sha256     = Security::get_sha256(lock, strlen(lock));
 
     // compare the hashes from the system and the input hashes.
     cmp  = memcmp(in_username_sha256, login.l_username, SHA256_LEN);
