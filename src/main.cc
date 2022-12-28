@@ -180,7 +180,7 @@ static void manager_prompt(Himitsu::Profile &profile,
                 std::cout << "Service not found" << std::endl;
             }
         } else if (input == "gen-passwd") {
-            std::cout << Himitsu::Profile::random_passwd();
+            //std::cout << Himitsu::Profile::random_passwd();
         } else if (input == "exit") {
             profile.disconnect();
             std::cout << "Logout..." << std::endl;
@@ -251,7 +251,7 @@ int main(int argc, char *argv[])
             std::cout << profile << std::endl;
         }
     } else if (!strcmp(argv[1], "--gen-passwd")) {
-        std::cout << Himitsu::Profile::random_passwd() << std::endl;
+        //std::cout << Himitsu::Profile::random_passwd() << std::endl;
     } else if (!strcmp(argv[1], "--login")) {
         login(profile);
     }

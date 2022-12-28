@@ -272,8 +272,64 @@ std::vector<std::string> Profile::show_profs()
     return profiles;
 }
 
-std::string Profile::random_passwd()
+std::string Profile::random_passwd(size_t len, bool enable_lower,
+                                   bool enable_upper, bool enable_numbers,
+                                   bool enable_special)
 {
+    // TODO - ask for length.
+    // Set of alphabet lower case characters.
+    char lower_case[26] = {
+        'a','b','c','d','e',
+        'f','g','h','i','j',
+        'k','l','m','n','o',
+        'p','q','r','s','t',
+        'u','v','w','x','y',
+        'z'
+    };
+
+    // Set of alphabet upper case characters.
+    char upper_case[26] = {
+        'A','B','C','D','E',
+        'F','G','H','I','J',
+        'K','L','M','N','O',
+        'P','Q','R','S','T',
+        'U','V','W','X','Y',
+        'Z'
+    };
+
+    // Set of numbers.
+    char numbers[10] = {
+        '0', '1', '2', '3',
+        '4', '5', '6', '7',
+        '8', '9'
+    };
+
+    // Set of special characters.
+    char special[8] = {
+        '!', '@', '#', '$', 
+        '%', '^', '&', '*'
+    };
+
+    // Set of all 4 sets.
+    char *sets[4] = {
+        lower_case, upper_case,
+        numbers, special
+    };
+
+    std::string generated_pwd;
+    size_t curr_pwd_size = 0;
+    
+    int sel_set = 0; // select set.
+    int sel_ch  = 0; // select character.
+
+    for (curr_pwd_size = 0; curr_pwd_size < len; ) {
+       // TODO - Get an random number and use END bitwise oparator
+       // in order to have right bounds.
+
+    }
+    
+
+
     return "";
 }
 

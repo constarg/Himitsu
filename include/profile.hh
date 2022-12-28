@@ -53,7 +53,9 @@ namespace Himitsu
              * *random_passwd* generates a random password
              * and return the result.
              */
-            static std::string random_passwd();
+            static std::string random_passwd(size_t len, bool enable_lower,
+                                             bool enable_upper, bool enable_numbers,
+                                             bool enable_special);
 
             /**
              * *search_prof* method displays all the unvailable
