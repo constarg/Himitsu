@@ -14,7 +14,11 @@
 #define PASSWD_MAX  32
 #define ENC_MAX     128
 
-
+// enable bits for the random password generator.
+#define LOWER_EN_B   (0x1 << 1)
+#define UPPER_EN_B   (0x1 << 2)
+#define NUMBER_EN_B  (0x1 << 3)
+#define SPECIAL_EN_B (0x1 << 4)
 
 namespace Himitsu 
 {
