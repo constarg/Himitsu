@@ -253,7 +253,7 @@ std::vector<std::string> Profile::show_profs()
     std::vector<std::string> profiles;
     std::string profile_str;
     std::string home_prefix = getenv("HOME");
-    std::string profile_loc = home_prefix + "/.local/share/Himitsu/profiles/";
+    std::string profile_loc = home_prefix + PROFILE_LOC();
 
     DIR *dir;
     struct dirent *profile;
@@ -371,6 +371,8 @@ void Profile::connect(std::string username, const char *lock,
 
     int cmp = 0;
 
+    std::cout << "OK" << std::endl;
+
     // Get login info.
     if (get_login_info(&login, pname) == -1) return;
 
@@ -387,24 +389,10 @@ void Profile::connect(std::string username, const char *lock,
     // check if the  hashes are equal.
     if (cmp != 0) return;
 
+
     // encrypt the master password.
     if (this->security_manager->encrypt_master_pwd(lock) != 0) return;
 
-    // if the above stament didn't return, when the user put the right credentials.
-    // before check the account as connected we have to do a few jobs.
-    // encrypt the lock (a.k.a master password) using random bytes.
-    /*Security::plock_key = Security::get_random_bytes(AES_LEN); // this behaves as just random bytes. // TODO - this value must be freed.
-    Security::plock_iv  = Security::get_aes_iv();              // behave as the actual iv.           // TODO - this value must be freed.
-
-    if (Security::plock_iv == nullptr ||
-        Security::plock_key == nullptr) return;
-
-    // encrypt lock.
-    Security::plock_enc_size = Security::encrypt_data(Security::plock_enc, 
-                                                     (const unsigned char *) lock, 
-                                                      strlen(lock), Security::plock_key, 
-                                                      Security::plock_iv);*/
-    // If all of the above actions are done,
     // then the user is connected.
     this->status = CONNECTED;
     this->pname  = pname;
