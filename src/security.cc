@@ -1,6 +1,9 @@
+#include <cstring>
+#include <openssl/crypto.h>
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <openssl/err.h>
+#include <sys/mman.h>
 
 #include <math.h>
 
@@ -8,40 +11,33 @@
 
 using namespace Himitsu;
 
+/**
+ * PRIVATE MEMBERS
+ */
 
-Security::Security()
-{
-    // Allocate space for the sensitive data.
-    this->plock_enc      = (unsigned char *) OPENSSL_malloc(sizeof(char) * ENC_MAX);
-    this->plock_enc_size = (unsigned int  *) OPENSSL_malloc(sizeof(unsigned int));
+/**
+ * The implementation of the below methods 
+ * is nessesery in order to prevent mulitple
+ * syscalls of mlock and munlock.
+ *
+ * This method expects that the dst is already
+ * an allocated space. Is used for the private
+ * members on the Security class.
+ */
 
-    // TODO - protect the memory.
+int Security::get_random_bytes(unsigned char *dst, int len)
+{ 
+    RAND_bytes(dst, len);
+    if (ERR_get_error() == 0) {
+        
+        return 0;
+    }
+    return -1;
 }
-
-Security::~Security()
+            
+int Security::get_aes_iv(unsigned char *dst)
 {
-    OPENSSL_free(this->plock_enc);
-    OPENSSL_free(this->plock_enc_size);
-    // TODO - free the memory.
-}
-
-const unsigned char *Security::get_sha256(const char *msg, size_t s_msg)
-{
-    unsigned char *byte_arr = (unsigned char *) malloc(sizeof(char) * SHA256_LEN);
-    int err1, err2, err3;
-
-    EVP_MD_CTX *ctx;
-    ctx = EVP_MD_CTX_new();
-    if (!ctx) return nullptr;
-
-    err1 = EVP_DigestInit_ex(ctx, EVP_sha256(), NULL);
-    err2 = EVP_DigestUpdate(ctx, msg, s_msg);
-    err3 = EVP_DigestFinal_ex(ctx, byte_arr, NULL);
-
-    EVP_MD_CTX_free(ctx);
-
-    return (err1 != 1 || err2 != 1 ||
-            err3 != 1)? nullptr : (const unsigned char *) byte_arr;
+    return get_random_bytes(dst, IV_LEN);
 }
 
 int Security::encrypt_data(unsigned char *dst, const unsigned char *data, 
@@ -90,35 +86,128 @@ int Security::decrypt_data(unsigned char *dst, const unsigned char *data,
             err3 != 1)? -1 : dst_size;
 }
 
+
+char *Security::decrypt_master_key()
+{
+    int err = 0;
+    char *master = (char *) OPENSSL_malloc(sizeof(char) * PASSWD_MAX + 1);
+    memset(master, 0x0, PASSWD_MAX + 1);
+
+    // lock memory.
+    if (mlock(master, PASSWD_MAX) != 0) return nullptr;
+
+    // decrypt.
+    err = Security::decrypt_data((unsigned char *) master, 
+                                 (const unsigned char *) this->plock_enc, 
+                                 this->plock_enc_size, this->plock_key, 
+                                 this->plock_iv);
+
+    if (err == -1) return nullptr;
+
+    return master;
+}
+
+/**
+ * PUBLIC MEMBERS
+ */
+
+Security::Security()
+{
+    this->error_flag = 0;
+    // Allocate space for the sensitive data.
+    this->plock_enc      = (unsigned char *) OPENSSL_malloc(sizeof(char) * ENC_MAX);
+    this->plock_iv       = (unsigned char *) OPENSSL_malloc(sizeof(char) * IV_LEN);
+    this->plock_key      = (unsigned char *) OPENSSL_malloc(sizeof(char) * AES_LEN);
+    this->plock_enc_size = 0;
+
+    // initialization.
+    memset(this->plock_enc, 0x0, ENC_MAX);
+    memset(this->plock_iv, 0x0, IV_LEN);
+    memset(this->plock_key, 0x0, AES_LEN);
+    
+    // lock to memory.
+    this->error_flag += mlock(this->plock_enc, ENC_MAX);
+    this->error_flag += mlock(this->plock_iv, IV_LEN);
+    this->error_flag += mlock(this->plock_key, AES_LEN);
+    this->error_flag += mlock(&this->plock_enc_size, sizeof(int));
+}
+
+Security::~Security()
+{
+    // dispose data.
+    OPENSSL_cleanse(this->plock_enc, ENC_MAX);
+    OPENSSL_cleanse(this->plock_iv, IV_LEN);
+    OPENSSL_cleanse(this->plock_key, AES_LEN);
+    OPENSSL_cleanse(&this->plock_enc_size, sizeof(int));
+
+    // unlock memory.
+    munlock(this->plock_enc, ENC_MAX);
+    munlock(this->plock_iv, IV_LEN);
+    munlock(this->plock_key, AES_LEN);
+    munlock(&this->plock_enc_size, sizeof(int));
+
+    // free memory.
+    OPENSSL_free(this->plock_enc);
+    OPENSSL_free(this->plock_iv);
+    OPENSSL_free(this->plock_key);
+}
+
+const unsigned char *Security::get_sha256(const char *msg, size_t s_msg)
+{
+    unsigned char *byte_arr = (unsigned char *) malloc(sizeof(char) * SHA256_LEN);
+    int err1, err2, err3;
+
+    EVP_MD_CTX *ctx;
+    ctx = EVP_MD_CTX_new();
+    if (!ctx) return nullptr;
+
+    err1 = EVP_DigestInit_ex(ctx, EVP_sha256(), NULL);
+    err2 = EVP_DigestUpdate(ctx, msg, s_msg);
+    err3 = EVP_DigestFinal_ex(ctx, byte_arr, NULL);
+
+    EVP_MD_CTX_free(ctx);
+
+    return (err1 != 1 || err2 != 1 ||
+            err3 != 1)? nullptr : (const unsigned char *) byte_arr;
+}
+
+
 int Security::encrypt_master_pwd(const char *master)
 {
+    if (this->error_flag != 0) return -1;
+
+    Security::get_random_bytes(this->plock_key, AES_LEN); // Get a random sequence of bytes.
+    Security::get_aes_iv(this->plock_iv); // Get the initialization vector.
+
+    if (this->plock_key == nullptr ||
+        this->plock_iv == nullptr) return -1;
+
+    // encrypt master key.
+    this->plock_enc_size = Security::encrypt_data(this->plock_enc, 
+                                                  (const unsigned char *) master, 
+                                                  strlen(master), this->plock_key, 
+                                                  this->plock_iv);
+
     return 0;
 }
 
-char *Security::decrypt_master_pwd()
+int Security::encrypt_data_using_master(unsigned char *enc_data, char *plaintext)
 {
-    return nullptr;
+    // TODO - decrypt the master key
+    // TODO - use the master key to encrypt the data.
+    return 0;
 }
-
-
-// TODO - make the encrypt master password method.
-// TODO - make the decrypt maste password method.
 
 unsigned char *Security::get_random_bytes(int len)
 {
-    unsigned char *iv = (unsigned char *) malloc(sizeof(char) *
-                                                 len); // 256 - bits, aes256
+    unsigned char *bytes = (unsigned char *) malloc(sizeof(char) *
+                                                    len); // 256 - bits, aes256
     // TODO - PROTECT MEMORY.
-    RAND_bytes(iv, len);
+    RAND_bytes(bytes, len);
     if (ERR_get_error() == 0) {
-        return iv;
+        return bytes;
     }
     return nullptr;
-}
-
-int Security::password_entropy(size_t len, size_t range)
-{
-    return len * log2(range); 
 }
 
 unsigned char *Security::get_aes_iv()
@@ -126,22 +215,8 @@ unsigned char *Security::get_aes_iv()
     return Security::get_random_bytes(IV_LEN);
 }
 
-const unsigned int *Security::get_master_pwd_size()
+int Security::password_entropy(size_t len, size_t range)
 {
-    return this->plock_enc_size;
+    return len * log2(range); 
 }
 
-const unsigned char *Security::get_master_pwd()
-{
-    return this->plock_enc;
-}
-
-const unsigned char *Security::get_master_used_key()
-{
-    return this->plock_key;
-}
-
-const unsigned char *Security::get_master_used_iv()
-{
-    return this->plock_iv;
-}

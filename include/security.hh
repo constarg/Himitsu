@@ -5,6 +5,10 @@
 
 #define ENC_MAX         128
 
+#ifndef PASSWD_MAX
+#define PASSWD_MAX      32
+#endif
+
 #define IV_LEN          0x10  // 127 - bits, 16 bytes. (initialization vector)
 #define AES_LEN         0x20  // 256 - bits, 32 bytes.
 #define SHA256_LEN      0x20  // 256 - bits, 32 bytes. 
@@ -19,22 +23,24 @@ namespace Himitsu {
     
     class Security {
         private:
-            unsigned int  *plock_enc_size;                // The actual size of the encrypted password.
+            unsigned int   plock_enc_size;                // The actual size of the encrypted password.
             unsigned char *plock_enc;                     // Encrypted lock (a.k.a master password).
             unsigned char *plock_key;                     // one-time encryption key for lock.
             unsigned char *plock_iv;                      // one-time encryption key iv, for AES.
-            
-        public:
-            Security();
-            ~Security();
-
+          
+            int error_flag;
             /**
-             * *get_sha256* return the sha256 hash of msg.
-             * @param msg The message to hash.
-             * @param s_msg The size of the message.
-             */
-            static const unsigned char *get_sha256(const char *msg, size_t s_msg);
+             * @param dst Where to put the results.
+             * @return 0 on success or -1 on error
+             **/
+            static int get_random_bytes(unsigned char *dst, int len);
             
+            /**
+             * @param dst Where to put the results.
+             * @return 0 on success or -1 on error.
+             */
+            static int get_aes_iv(unsigned char *dst); 
+
             /**
              * *encrypt_data* Enccypts data using AES 256 bit.
              * @param dst The encrypted data.
@@ -59,6 +65,22 @@ namespace Himitsu {
 
 
             /**
+             * This method descrypts the master key
+             */
+            char *decrypt_master_key();
+
+        public:
+            Security();
+            ~Security();
+
+            /**
+             * *get_sha256* return the sha256 hash of msg.
+             * @param msg The message to hash.
+             * @param s_msg The size of the message.
+             */
+            static const unsigned char *get_sha256(const char *msg, size_t s_msg);
+            
+            /**
              * *password_entrophy* method, calculates the entropy
              * of a password. This can be used to determine if a 
              * password is strong, or it's a weak password.
@@ -77,41 +99,14 @@ namespace Himitsu {
             int encrypt_master_pwd(const char *master);
 
             /**
-             * @return A memory protected pointer 
-             * that points to the unencrypted master
-             * password. NULL returns in case of an error.
+             * This function encrypts the user data using
+             * the available master key.
+             *
+             * @param enc_data Where the encrypted data is stored.
+             * @param plaintext The data to encrypt using master key.
              */
-            char *decrypt_master_pwd();
-
-            /**
-             * The functions below is all the informations
-             * that needed in order to decrypt the master 
-             * password.
-             */
-            /**
-             * @return the size of the encypted 
-             * master password.
-             */
-            const unsigned int *get_master_pwd_size();
-
-            /**
-             * @return the encypted master password.
-             */
-            const unsigned char *get_master_pwd();
-
-            /**
-             * @return the key used to enctypt the 
-             * master password.
-             */
-            const unsigned char *get_master_used_key();
-
-            /**
-             * @return the initialization vector used
-             * to ecnrypt the master password.
-             */
-            const unsigned char *get_master_used_iv();
-
-
+            int encrypt_data_using_master(unsigned char *enc_data, char *plaintext);
+            
             /**
              * @return random bytes of length @len
              */

@@ -11,14 +11,15 @@
 #define CONNECTED   true
 #define DISCONECTED false
 
+#ifndef PASSWD_MAX
 #define PASSWD_MAX  32
-#define ENC_MAX     128
+#endif
 
 // enable bits for the random password generator.
-#define LOWER_EN_B   (0x1 << 1)
-#define UPPER_EN_B   (0x1 << 2)
-#define NUMBER_EN_B  (0x1 << 3)
-#define SPECIAL_EN_B (0x1 << 4)
+#define LOWER_EN_B   (0x01 << 1)
+#define UPPER_EN_B   (0x01 << 2)
+#define NUMBER_EN_B  (0x01 << 3)
+#define SPECIAL_EN_B (0x01 << 4)
 
 // For random password generator.
 // The macros below defines how the enable bits of
