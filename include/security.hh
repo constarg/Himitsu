@@ -23,12 +23,12 @@ namespace Himitsu {
     
     class Security {
         private:
+            unsigned int   plock_err;
             unsigned int   plock_enc_size;                // The actual size of the encrypted password.
             unsigned char *plock_enc;                     // Encrypted lock (a.k.a master password).
             unsigned char *plock_key;                     // one-time encryption key for lock.
             unsigned char *plock_iv;                      // one-time encryption key iv, for AES.
           
-            int error_flag;
             /**
              * @param dst Where to put the results.
              * @return 0 on success or -1 on error

@@ -113,7 +113,7 @@ char *Security::decrypt_master_key()
 
 Security::Security()
 {
-    this->error_flag = 0;
+    this->plock_err = 0;
     // Allocate space for the sensitive data.
     this->plock_enc      = (unsigned char *) OPENSSL_malloc(sizeof(char) * ENC_MAX);
     this->plock_iv       = (unsigned char *) OPENSSL_malloc(sizeof(char) * IV_LEN);
@@ -126,10 +126,10 @@ Security::Security()
     memset(this->plock_key, 0x0, AES_LEN);
     
     // lock to memory.
-    this->error_flag += mlock(this->plock_enc, ENC_MAX);
-    this->error_flag += mlock(this->plock_iv, IV_LEN);
-    this->error_flag += mlock(this->plock_key, AES_LEN);
-    this->error_flag += mlock(&this->plock_enc_size, sizeof(int));
+    this->plock_err += mlock(this->plock_enc, ENC_MAX);
+    this->plock_err += mlock(this->plock_iv, IV_LEN);
+    this->plock_err += mlock(this->plock_key, AES_LEN);
+    this->plock_err += mlock(&this->plock_enc_size, sizeof(int));
 }
 
 Security::~Security()
@@ -174,7 +174,7 @@ const unsigned char *Security::get_sha256(const char *msg, size_t s_msg)
 
 int Security::encrypt_master_pwd(const char *master)
 {
-    if (this->error_flag != 0) return -1;
+    if (this->plock_err != 0) return -1;
 
     Security::get_random_bytes(this->plock_key, AES_LEN); // Get a random sequence of bytes.
     Security::get_aes_iv(this->plock_iv); // Get the initialization vector.
@@ -191,6 +191,7 @@ int Security::encrypt_master_pwd(const char *master)
     return 0;
 }
 
+// TODO - request the initialization vector too.
 int Security::encrypt_data_using_master(unsigned char *enc_data, char *plaintext)
 {
     // TODO - decrypt the master key

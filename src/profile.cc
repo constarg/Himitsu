@@ -345,6 +345,8 @@ const char *Profile::random_passwd(size_t len,
         } else if ((short)(*sel_set & 0x3) == 3 && SPECIAL_EN(*enable_bits)) {
             *sel_ch = (*sel_ch & 0x1F) % 8;
         } else {
+            free(sel_set);
+            free(sel_ch);
             continue;
         }
 
