@@ -36,4 +36,5 @@ profiles/
 *.swp
 
 himitsu
+himitsu_debug
 compile_flags.txt

@@ -1,13 +1,23 @@
 object_files = ./build/profile.o ./build/security.o
+object_files_debug = ./build/profile_debug.o ./build/security_debug.o
 header_loc = -I include/
+
+GCC = g++
+
+libraries = -lcrypto
+
+c_flags = -O3 -fvisibility=hidden -Wall
+c_debug_flags = -g -Wall
+
+obj_flags = --localize-hidden --strip-unneeded
 
 
 all: dir_make locations ${object_files}
-	g++ -O3 -fvisibility=hidden -Wall ${header_loc} ./src/main.cc ${object_files} -lcrypto -o ./bin/himitsu
-	objcopy --localize-hidden --strip-unneeded ./bin/himitsu
+	${GCC} ${c_flags} ${header_loc} ./src/main.cc ${object_files} ${libraries} -o ./bin/himitsu
+	objcopy ${obj_flags} ./bin/himitsu
 
-debug: dir_make locations ${object_files}
-	g++ -g -Wall ${header_loc} ./src/main.cc ${object_files} -lcrypto -o ./bin/himitsu_debug
+debug: dir_make locations ${object_files_debug}
+	${GCC} ${c_debug_flags} ${header_loc} ./src/main.cc ${object_files} ${libraries} -o ./bin/himitsu_debug
 
 install:
 	cp ./bin/himitsu ~/.local/bin/	
@@ -23,10 +33,16 @@ locations:
 	mkdir -p ~/.local/share/Himitsu/records
 
 ./build/profile.o: ./src/profile.cc
-	g++ -O3 -fvisibility=hidden -Wall ${header_loc} -c ./src/profile.cc -lcrypto -o ./build/profile.o
+	${GCC} ${c_flags} ${header_loc} -c ./src/profile.cc ${libraries} -o ./build/profile.o
 
 ./build/security.o: ./src/security.cc
-	g++ -O3 -fvisibility=hidden -Wall ${header_loc} -c ./src/security.cc -lcrypto -o ./build/security.o
+	${GCC} ${c_flags} ${header_loc} -c ./src/security.cc ${libraries} -o ./build/security.o
+
+./build/profile_debug.o: ./src/profile.cc
+	${GCC} ${c_debug_flags} ${header_loc} -c ./src/profile.cc ${libraries} -o ./build/profile_debug.o
+
+./build/security_debug.o: ./src/security.cc
+	${GCC} ${c_debug_flags} ${header_loc} -c ./src/security.cc ${libraries} -o ./build/security_debug.o
 
 clean:
 	rm -rf ./build/
