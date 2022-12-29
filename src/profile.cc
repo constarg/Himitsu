@@ -349,7 +349,7 @@ const char *Profile::random_passwd(size_t len,
             *sel_ch = (*sel_ch & 0x1F) % 0x1A;
         } else if ((short)(*sel_set & 0x3) == 2 && NUMBER_EN(*enable_bits)) {
             *sel_ch = (*sel_ch & 0x1F) % 10;
-        } else if (SPECIAL_EN(*enable_bits)) {
+        } else if ((short)(*sel_set & 0x3) == 3 && SPECIAL_EN(*enable_bits)) {
             *sel_ch = (*sel_ch & 0x1F) % 8;
         } else {
             continue;
