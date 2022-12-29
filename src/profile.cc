@@ -1,11 +1,11 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <malloc.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <memory.h>
 #include <dirent.h>
 #include <cstring>
+#include <malloc.h>
 
 #include "profile.hh"
 #include "security.hh"
@@ -78,7 +78,7 @@ struct record
  */
 static int get_login_info(struct logins *dst, std::string pname)
 {
-    std::string home_prefix = getenv("HOME");
+    std::string home_prefix    = getenv("HOME");
     std::string login_location = home_prefix + PROFILE_LOG_INFO() + pname; // The location whre the logins for profiles is stored.
     int fd = open(login_location.c_str(), O_RDONLY);
     if (fd == -1) return -1;
@@ -102,7 +102,7 @@ static int get_login_info(struct logins *dst, std::string pname)
  */
 static bool is_rec_exists(std::string serv)
 {
-    std::string home_prefix = getenv("HOME");
+    std::string home_prefix     = getenv("HOME");
     std::string record_location = home_prefix + RECORD_LOC() + serv;
 
     std::ofstream rfile;
@@ -189,8 +189,8 @@ Profile::~Profile()
 bool Profile::mk_new_prof(std::string pname, std::string username,
                           std::string lock)
 {
-    std::string home_prefix = getenv("HOME");
-    std::string prof_location = home_prefix + PROFILE_LOC() + pname; // The location where the profiles is stored.
+    std::string home_prefix    = getenv("HOME");
+    std::string prof_location  = home_prefix + PROFILE_LOC() + pname; // The location where the profiles is stored.
     std::string login_location = home_prefix + PROFILE_LOG_INFO() + pname; // The location whre the logins for profiles is stored.
     
     std::ofstream pfile;
@@ -322,7 +322,8 @@ const char *Profile::random_passwd(size_t len,
         numbers, special
     };
 
-    char *generated_pwd = (char *) malloc(sizeof(char) * len);
+    char *generated_pwd = (char *) malloc(sizeof(char) * len + 1);
+    memset(generated_pwd, 0x0, len + 1);
     size_t curr_pwd_size = 0;
     
     unsigned char *sel_set = 0; // select set.
@@ -333,21 +334,33 @@ const char *Profile::random_passwd(size_t len,
         // TODO - check for errors that may occur from get_random_bytes.
         
         sel_set = Security::get_random_bytes(1); // get a random byte.
+        sel_ch = Security::get_random_bytes(1);
+      
+        if (sel_set == nullptr || sel_ch == nullptr) {
+            free(generated_pwd);
+            free(sel_set);
+            free(sel_ch);
+            return NULL;
+        }
 
         if ((short)(*sel_set & 0x3) == 0 && LOWER_EN(*enable_bits)) {
-            sel_ch = Security::get_random_bytes(1);
             *sel_ch = (*sel_ch & 0x1F) % 0x1A; // mod with 26 in order to stay in bounds. 
-            generated_pwd[curr_pwd_size++] = sets[0x0][(short)*sel_ch];
         } else if ((short)(*sel_set & 0x3) == 1 && UPPER_EN(*enable_bits)) {
-            // TODO - do something for upper letters.
+            *sel_ch = (*sel_ch & 0x1F) % 0x1A;
         } else if ((short)(*sel_set & 0x3) == 2 && NUMBER_EN(*enable_bits)) {
-            // TODO - do something for numbers.
+            *sel_ch = (*sel_ch & 0x1F) % 10;
         } else if (SPECIAL_EN(*enable_bits)) {
-            // TODO - do something for special charachers.
-        } else break;
+            *sel_ch = (*sel_ch & 0x1F) % 8;
+        } else {
+            continue;
+        }
+
+        generated_pwd[curr_pwd_size++] = sets[(short)*sel_set & 0x3][(short)*sel_ch];
+        free(sel_set);
+        free(sel_ch);
     }
 
-    return "";
+    return generated_pwd;
 }
 
 void Profile::connect(std::string username, const char *lock,

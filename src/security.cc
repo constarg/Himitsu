@@ -18,6 +18,8 @@ Security::Security()
 
 Security::~Security()
 {
+    OPENSSL_free(this->plock_enc);
+    OPENSSL_free(this->plock_enc_size);
     // TODO - free the memory.
 }
 
@@ -84,6 +86,16 @@ int Security::decrypt_data(unsigned char *dst, const unsigned char *data,
     
     return (err1 != 1 || err2 != 1 ||
             err3 != 1)? -1 : dst_size;
+}
+
+int Security::encrypt_master_pwd(const char *master)
+{
+    return 0;
+}
+
+char *Security::decrypt_master_pwd()
+{
+    return nullptr;
 }
 
 // TODO - make the encrypt master password method.

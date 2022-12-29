@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <openssl/crypto.h>
 #include <sys/mman.h>
+#include <malloc.h>
+
 
 #include "profile.hh"
 
@@ -251,7 +253,44 @@ int main(int argc, char *argv[])
             std::cout << profile << std::endl;
         }
     } else if (!strcmp(argv[1], "--gen-passwd")) {
-        //std::cout << Himitsu::Profile::random_passwd() << std::endl;
+        char lower, upper, num, special;
+        const char *password;
+        size_t len;
+        unsigned char enable_bits;
+        memset(&enable_bits, 0x0, 1);
+
+        std::cout << "Include lower letters? [Y/n]: ";
+        std::cin >> lower;
+        std::cout << std::endl;
+
+        std::cout << "Include upper letters? [Y/n]: ";
+        std::cin >> upper;
+        std::cout << std::endl;
+
+        std::cout << "Include numbers? [Y/n]: ";
+        std::cin >> num;
+        std::cout << std::endl;
+
+        std::cout << "Include special characters? [Y/n]: ";
+        std::cin >> special;
+        std::cout << std::endl;
+
+        std::cout << "Password length: ";
+        std::cin >> len;
+        std::cout << std::endl;
+
+        enable_bits |= (tolower(lower) == 'y')? LOWER_EN_B : 0x00;
+        enable_bits |= (tolower(upper) == 'y')? UPPER_EN_B : 0x00;
+        enable_bits |= (tolower(num) == 'y')? NUMBER_EN_B : 0x00;
+        enable_bits |= (tolower(special) == 'y')? SPECIAL_EN_B : 0x00;
+
+        // Get the requested password.
+        password = Himitsu::Profile::random_passwd(len, &enable_bits);
+        if (password == NULL) std::cout << "Failed" << std::endl;
+
+        std::cout << password << std::endl;
+        GEN_PWD_FREE((void *) password);
+
     } else if (!strcmp(argv[1], "--login")) {
         login(profile);
     }

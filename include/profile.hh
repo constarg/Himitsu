@@ -20,6 +20,9 @@
 #define NUMBER_EN_B  (0x1 << 3)
 #define SPECIAL_EN_B (0x1 << 4)
 
+// Free the random generated password.
+#define GEN_PWD_FREE(PWD) free(PWD);
+
 namespace Himitsu 
 {
 
