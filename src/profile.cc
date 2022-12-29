@@ -19,6 +19,14 @@ using namespace Himitsu;
 #define REC_EXIST       -0x2  // The requested record already exist.
 #define BAD_CRED        -0x3  // Bad username of password.
 
+// For random password generator.
+// The macros below defines how the enable bits of
+// random password generator are stractued.
+#define LOWER_EN(BITS)   (BITS & (0x0 << 0x1))
+#define UPPER_EN(BITS)   (BITS & (0x0 << 0x2))
+#define NUMBER_EN(BITS)  (BITS & (0x0 << 0x3))
+#define SPECIAL_EN(BITS) (BITS & (0x0 << 0x4))
+
 #define PROFILE_LOC()                           \
     + "/"                                       \
     +  ".local/share/Himitsu/profiles/"         
@@ -272,10 +280,8 @@ std::vector<std::string> Profile::show_profs()
     return profiles;
 }
 
-std::string Profile::random_passwd(size_t len, bool enable_lower,
-                                   bool enable_upper, bool enable_numbers,
-                                   bool enable_special)
-{
+const char *Profile::random_passwd(size_t len, 
+                                   unsigned char *enable_bits) {
     // TODO - ask for length.
     // Set of alphabet lower case characters.
     char lower_case[26] = {
@@ -316,19 +322,30 @@ std::string Profile::random_passwd(size_t len, bool enable_lower,
         numbers, special
     };
 
-    std::string generated_pwd;
+    char *generated_pwd = (char *) malloc(sizeof(char) * len);
     size_t curr_pwd_size = 0;
     
-    int sel_set = 0; // select set.
-    int sel_ch  = 0; // select character.
+    unsigned char *sel_set = 0; // select set.
+    unsigned char *sel_ch  = 0; // select character.
 
     for (curr_pwd_size = 0; curr_pwd_size < len; ) {
-       // TODO - Get an random number and use END bitwise oparator
-       // in order to have right bounds.
+        // in order to have right bounds.
+        // TODO - check for errors that may occur from get_random_bytes.
+        
+        sel_set = Security::get_random_bytes(1); // get a random byte.
 
+        if ((short)(*sel_set & 0x3) == 0 && LOWER_EN(*enable_bits)) {
+            sel_ch = Security::get_random_bytes(1);
+            *sel_ch = (*sel_ch & 0x1F) % 0x1A; // mod with 26 in order to stay in bounds. 
+            generated_pwd[curr_pwd_size++] = sets[0x0][(short)*sel_ch];
+        } else if ((short)(*sel_set & 0x3) == 1 && UPPER_EN(*enable_bits)) {
+            // TODO - do something for upper letters.
+        } else if ((short)(*sel_set & 0x3) == 2 && NUMBER_EN(*enable_bits)) {
+            // TODO - do something for numbers.
+        } else if (SPECIAL_EN(*enable_bits)) {
+            // TODO - do something for special charachers.
+        } else break;
     }
-    
-
 
     return "";
 }
