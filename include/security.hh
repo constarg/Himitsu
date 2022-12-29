@@ -9,6 +9,12 @@
 #define AES_LEN         0x20  // 256 - bits, 32 bytes.
 #define SHA256_LEN      0x20  // 256 - bits, 32 bytes. 
 
+// Password stregth
+#define POOR(ENTROPY)      (ENTROPY < 24)
+#define WEAK(ENTROPY)      (ENTROPY > 25 && ENTROPY < 49)
+#define RESONABLE(ENTROPY) (ENTROPY > 50 && ENTROPY < 74)
+
+
 namespace Himitsu {
     
     class Security {
@@ -51,6 +57,16 @@ namespace Himitsu {
             static int decrypt_data(unsigned char *dst, const unsigned char *data, 
                                     int size, const unsigned char *key, const unsigned char *iv);
 
+
+            /**
+             * *password_entrophy* method, calculates the entropy
+             * of a password. This can be used to determine if a 
+             * password is strong, or it's a weak password.
+             *
+             * @param len The length of the password.
+             * @param range The range of characters.
+             */
+            static int password_entropy(size_t len, size_t range);
 
             /**
              * Enccypt the master password and store's it

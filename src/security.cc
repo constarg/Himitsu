@@ -2,6 +2,8 @@
 #include <openssl/rand.h>
 #include <openssl/err.h>
 
+#include <math.h>
+
 #include "security.hh"
 
 using namespace Himitsu;
@@ -98,6 +100,7 @@ char *Security::decrypt_master_pwd()
     return nullptr;
 }
 
+
 // TODO - make the encrypt master password method.
 // TODO - make the decrypt maste password method.
 
@@ -111,6 +114,11 @@ unsigned char *Security::get_random_bytes(int len)
         return iv;
     }
     return nullptr;
+}
+
+int Security::password_entropy(size_t len, size_t range)
+{
+    return len * log2(range); 
 }
 
 unsigned char *Security::get_aes_iv()

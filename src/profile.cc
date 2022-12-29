@@ -19,13 +19,6 @@ using namespace Himitsu;
 #define REC_EXIST       -0x2  // The requested record already exist.
 #define BAD_CRED        -0x3  // Bad username of password.
 
-// For random password generator.
-// The macros below defines how the enable bits of
-// random password generator are stractued.
-#define LOWER_EN(BITS)   (BITS & LOWER_EN_B)
-#define UPPER_EN(BITS)   (BITS & UPPER_EN_B)
-#define NUMBER_EN(BITS)  (BITS & NUMBER_EN_B)
-#define SPECIAL_EN(BITS) (BITS & SPECIAL_EN_B)
 
 #define PROFILE_LOC()                           \
     + "/"                                       \

@@ -20,6 +20,14 @@
 #define NUMBER_EN_B  (0x1 << 3)
 #define SPECIAL_EN_B (0x1 << 4)
 
+// For random password generator.
+// The macros below defines how the enable bits of
+// random password generator are stractued.
+#define LOWER_EN(BITS)   (BITS & LOWER_EN_B)
+#define UPPER_EN(BITS)   (BITS & UPPER_EN_B)
+#define NUMBER_EN(BITS)  (BITS & NUMBER_EN_B)
+#define SPECIAL_EN(BITS) (BITS & SPECIAL_EN_B)
+
 // Free the random generated password.
 #define GEN_PWD_FREE(PWD) free(PWD);
 

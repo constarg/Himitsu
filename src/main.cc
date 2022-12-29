@@ -139,6 +139,30 @@ static int safely_destroy_password(char *password)
     return 0;
 }
 
+static void password_strength(unsigned char *enable_bits, size_t len)
+{
+    size_t range = 0; // The range of characters.
+    
+    int entropy;
+
+    range += (LOWER_EN(*enable_bits))?  26 : 0;
+    range += (UPPER_EN(*enable_bits))?  26 : 0;
+    range += (NUMBER_EN(*enable_bits))? 10 : 0;
+    range += (SPECIAL_EN(*enable_bits))? 8 : 0;
+
+    // calculate entropy.
+    entropy = Himitsu::Security::password_entropy(len, range);
+    if (POOR(entropy)) 
+            std::cout << "[!] The password is poor, please make another." 
+                      << std::endl;
+    else if (WEAK(entropy)) 
+            std::cout << "[!] The password is weak, please make another."
+                      << std::endl;
+    else if (RESONABLE(entropy)) 
+            std::cout << "[+] The password is ok but it would be good to make another.";
+    else    std::cout << "[*] The password is very good." << std::endl;
+}
+
 
 static void manager_prompt(Himitsu::Profile &profile, 
                            std::string username)
@@ -261,19 +285,15 @@ int main(int argc, char *argv[])
 
         std::cout << "Include lower letters? [Y/n]: ";
         std::cin >> lower;
-        std::cout << std::endl;
 
         std::cout << "Include upper letters? [Y/n]: ";
         std::cin >> upper;
-        std::cout << std::endl;
 
         std::cout << "Include numbers? [Y/n]: ";
         std::cin >> num;
-        std::cout << std::endl;
 
         std::cout << "Include special characters? [Y/n]: ";
         std::cin >> special;
-        std::cout << std::endl;
 
         std::cout << "Password length: ";
         std::cin >> len;
@@ -290,6 +310,10 @@ int main(int argc, char *argv[])
 
         std::cout << password << std::endl;
         GEN_PWD_FREE((void *) password);
+        
+        std::cout << std::endl << "------Calculate Password Strength------" 
+                  << std::endl << std::endl;
+        password_strength(&enable_bits, len);
 
     } else if (!strcmp(argv[1], "--login")) {
         login(profile);
