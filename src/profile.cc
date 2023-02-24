@@ -151,8 +151,8 @@ static int save_record(const struct record *src, std::string serv)
     char *hex_username;
     char *hex_password;
 
-    // Get master password.
-    // TODO - protect the area used to store master password.
+    
+
     return 0;
 }
 
@@ -326,7 +326,7 @@ const char *Profile::random_passwd(size_t len,
         // in order to have right bounds.
         // TODO - check for errors that may occur from get_random_bytes.
         
-        sel_set = Security::get_random_bytes(1); // get a random byte.
+        sel_set = Security::get_random_bytes(1); // get a random byte from random cryptographic algorithm.
         sel_ch = Security::get_random_bytes(1);
       
         if (sel_set == nullptr || sel_ch == nullptr) {
@@ -336,7 +336,10 @@ const char *Profile::random_passwd(size_t len,
             return NULL;
         }
 
+        // Select one of the 4 sets. Using 0x3 we can select a random set (assuming that the sel_set is a random byte)
         if ((short)(*sel_set & 0x3) == 0 && LOWER_EN(*enable_bits)) {
+            // 0x1F just reduce the sel_ch number (whitch is the index of the next character/number or special character)
+            // 0x1F is a mask to mod with 0x1A only the 5 lower bits of sel_ch
             *sel_ch = (*sel_ch & 0x1F) % 0x1A; // mod with 26 in order to stay in bounds. 
         } else if ((short)(*sel_set & 0x3) == 1 && UPPER_EN(*enable_bits)) {
             *sel_ch = (*sel_ch & 0x1F) % 0x1A;
@@ -371,8 +374,6 @@ void Profile::connect(std::string username, const char *lock,
 
     int cmp = 0;
 
-    std::cout << "OK" << std::endl;
-
     // Get login info.
     if (get_login_info(&login, pname) == -1) return;
 
@@ -388,7 +389,6 @@ void Profile::connect(std::string username, const char *lock,
     free((void *) in_lock_sha256);
     // check if the  hashes are equal.
     if (cmp != 0) return;
-
 
     // encrypt the master password.
     if (this->security_manager->encrypt_master_pwd(lock) != 0) return;

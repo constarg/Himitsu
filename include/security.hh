@@ -3,7 +3,7 @@
 
 #include <string.h>
 
-#define ENC_MAX         128
+#define ENC_MAX         256
 
 #ifndef PASSWD_MAX
 #define PASSWD_MAX      32
@@ -63,12 +63,7 @@ namespace Himitsu {
             static int decrypt_data(unsigned char *dst, const unsigned char *data, 
                                     int size, const unsigned char *key, const unsigned char *iv);
 
-
-            /**
-             * This method descrypts the master key
-             */
             char *decrypt_master_key();
-
         public:
             Security();
             ~Security();
@@ -105,7 +100,8 @@ namespace Himitsu {
              * @param enc_data Where the encrypted data is stored.
              * @param plaintext The data to encrypt using master key.
              */
-            int encrypt_data_using_master(unsigned char *enc_data, char *plaintext);
+            char *encrypt_data_using_master(unsigned char *enc_data, unsigned char *user_iv, 
+                                            char *plaintext);
             
             /**
              * @return random bytes of length @len

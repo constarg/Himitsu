@@ -86,7 +86,6 @@ int Security::decrypt_data(unsigned char *dst, const unsigned char *data,
             err3 != 1)? -1 : dst_size;
 }
 
-
 char *Security::decrypt_master_key()
 {
     int err = 0;
@@ -105,6 +104,13 @@ char *Security::decrypt_master_key()
     if (err == -1) return nullptr;
 
     return master;
+}
+
+static inline void dispose_master_key(char *master)
+{
+    OPENSSL_cleanse(master, PASSWD_MAX + 1);
+    if (munlock(master, PASSWD_MAX + 1) != 0) return;
+    OPENSSL_free(master);
 }
 
 /**
@@ -191,12 +197,16 @@ int Security::encrypt_master_pwd(const char *master)
     return 0;
 }
 
-// TODO - request the initialization vector too.
-int Security::encrypt_data_using_master(unsigned char *enc_data, char *plaintext)
+char *Security::encrypt_data_using_master(unsigned char *enc_data, 
+                                          unsigned char *user_iv, char *plaintext)
 {
+    char *master_key = decrypt_master_key();
+
+    /*encrypt_data(dst, (const unsigned char*) plaintext,
+                 strlen(plaintext), master_key, user_iv);*/
     // TODO - decrypt the master key
-    // TODO - use the master key to encrypt the data.
-    return 0;
+    // TODO - use the master key to encrypt the data.  
+    return nullptr;
 }
 
 unsigned char *Security::get_random_bytes(int len)
