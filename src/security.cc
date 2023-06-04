@@ -90,7 +90,7 @@ char *Security::decrypt_master_key()
 {
     int err = 0;
     char *master = (char *) OPENSSL_malloc(sizeof(char) * PASSWD_MAX + 1);
-    memset(master, 0x0, PASSWD_MAX + 1);
+    (void)memset(master, 0x0, PASSWD_MAX + 1);
 
     // lock memory.
     if (mlock(master, PASSWD_MAX) != 0) return nullptr;
@@ -101,15 +101,15 @@ char *Security::decrypt_master_key()
                                  this->plock_enc_size, this->plock_key, 
                                  this->plock_iv);
 
-    if (err == -1) return nullptr;
+    if (-1 == err) return nullptr;
 
     return master;
 }
 
-static inline void dispose_master_key(char *master)
+static inline int dispose_master_key(char *master)
 {
     OPENSSL_cleanse(master, PASSWD_MAX + 1);
-    if (munlock(master, PASSWD_MAX + 1) != 0) return;
+    if (munlock(master, PASSWD_MAX + 1) != 0) return -1;
     OPENSSL_free(master);
 }
 
@@ -127,9 +127,9 @@ Security::Security()
     this->plock_enc_size = 0;
 
     // initialization.
-    memset(this->plock_enc, 0x0, ENC_MAX);
-    memset(this->plock_iv, 0x0, IV_LEN);
-    memset(this->plock_key, 0x0, AES_LEN);
+    (void)memset(this->plock_enc, 0x0, ENC_MAX);
+    (void)memset(this->plock_iv, 0x0, IV_LEN);
+    (void)memset(this->plock_key, 0x0, AES_LEN);
     
     // lock to memory.
     this->plock_err += mlock(this->plock_enc, ENC_MAX);
@@ -147,10 +147,10 @@ Security::~Security()
     OPENSSL_cleanse(&this->plock_enc_size, sizeof(int));
 
     // unlock memory.
-    munlock(this->plock_enc, ENC_MAX);
-    munlock(this->plock_iv, IV_LEN);
-    munlock(this->plock_key, AES_LEN);
-    munlock(&this->plock_enc_size, sizeof(int));
+    (void)munlock(this->plock_enc, ENC_MAX);
+    (void)munlock(this->plock_iv, IV_LEN);
+    (void)munlock(this->plock_key, AES_LEN);
+    (void)munlock(&this->plock_enc_size, sizeof(int));
 
     // free memory.
     OPENSSL_free(this->plock_enc);

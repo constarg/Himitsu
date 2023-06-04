@@ -31,14 +31,14 @@ static int read_sensitive_input(char *dst, size_t max)
     char c = '\0';
     size_t i = 0;
     // consume the first character.
-    fscanf(stdin, "%c", &c);
+    (void)fscanf(stdin, "%c", &c);
     if (c != '\n') {
         dst[0] = c;
         i = 1;
     }
 
     while(true) {
-        fscanf(stdin, "%c", &c);  
+        (void)fscanf(stdin, "%c", &c);  
         if (feof(stdin) != 0 || c == '\n') break;
         else if (ferror(stdin) != 0) return -1;
 
@@ -82,7 +82,9 @@ static inline int change_visibility(struct termios *term,
 static char *ask_for_password()
 {
     char *password = (char *) OPENSSL_malloc(sizeof(char) * PASSWD_MAX);
-    memset(password, 0x0, PASSWD_MAX);
+    if (NULL == password) return nullptr;
+
+    (void)memset(password, 0x0, PASSWD_MAX);
     struct termios terminal;
 
     int err1, err2, err3;

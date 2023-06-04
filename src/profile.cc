@@ -74,17 +74,17 @@ static int get_login_info(struct logins *dst, std::string pname)
     std::string home_prefix    = getenv("HOME");
     std::string login_location = home_prefix + PROFILE_LOG_INFO() + pname; // The location whre the logins for profiles is stored.
     int fd = open(login_location.c_str(), O_RDONLY);
-    if (fd == -1) return -1;
+    if (-1 == fd) return -1;
 
     struct logins login_info;
-    memset(&login_info, 0x0, sizeof(login_info));
+    (void)memset(&login_info, 0x0, sizeof(login_info));
 
     // Get the username.
     if (read(fd, login_info.l_username, SHA256_LEN) == -1) return -1;
     if (read(fd, login_info.l_lock, SHA256_LEN) == -1) return -1;
     if (read(fd, login_info.l_iv, IV_LEN) == -1) return -1;
 
-    memcpy(dst, &login_info, sizeof(login_info));
+    (void)memcpy(dst, &login_info, sizeof(login_info));
     close(fd);
     return 0;
 }
@@ -133,8 +133,8 @@ static int save_record(const struct record *src, std::string serv)
 
     // if the record doesn't exists.
     // Check if anything is wrong in username or password.
-    if (src->r_username == NULL ||
-        src->r_password == NULL) return BAD_CRED;
+    if (NULL == src->r_username ||
+        NULL == src->r_password) return BAD_CRED;
 
     //Profile::encrypt_data(unsigned char *dst, const unsigned char *data, 
     //                      int size, const unsigned char *key, const unsigned char *iv)
@@ -237,8 +237,8 @@ bool Profile::mk_new_prof(std::string pname, std::string username,
 
     close(prof_fd);
 
-    return (err1 == -1 || err2 == -1
-            || err3 == -1)? false : true;
+    return (-1 == err1 || -1 == err2 
+            || -1 == err3)? false : true;
 }
 
 bool Profile::del_prof(std::string pname, std::string sername, 
@@ -259,7 +259,7 @@ std::vector<std::string> Profile::show_profs()
     struct dirent *profile;
 
     dir = opendir(profile_loc.c_str());
-    if (dir == nullptr) return profiles;
+    if (nullptr == dir) return profiles;
 
     while ((profile = readdir(dir)) 
             != nullptr) {
